@@ -1,0 +1,13 @@
+#summary A project to control an own developed robotic arm with the help of Kinect.
+
+= Introduction =
+
+A project to control an own developed robotic arm with the help of Kinect.
+
+
+= Details =
+
+= Images =
+
+= Videos =
+<wiki:video url="http://www.youtube.com/watch?v=tiSzojabtLc"/>
