@@ -9,6 +9,11 @@ A project where humans are followed by a Neobotix moblie robot.
 
 = Images =
 http://www.sze.hu/~herno/robotics/RobotFollowsHuman.png
+
+
+http://www.sze.hu/~herno/robotics/KinectNeobotixScene1.png
+
+
+
 = Videos =
 <wiki:video url="http://www.youtube.com/watch?v=Tj8SWQQrw-A"/>
-
