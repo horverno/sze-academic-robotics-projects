@@ -1,0 +1,14 @@
+#summary A project where humans are followed by a Neobotix moblie robot.
+
+= Introduction =
+
+A project where humans are followed by a Neobotix moblie robot.
+
+
+= Details =
+
+= Images =
+http://www.sze.hu/~herno/robotics/RobotFollowsHuman.png
+= Videos =
+<wiki:video url="http://www.youtube.com/watch?v=Tj8SWQQrw-A"/>
+
