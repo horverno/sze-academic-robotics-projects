@@ -12,10 +12,17 @@ poza_1(:,:,2)=scene03_030deg;
 poza_1(:,:,3)=scene03_060deg;
 poza_1(:,:,4)=scene03_090deg;
 poza_1(:,:,5)=scene03_120deg;
-beta=[0,30,60,90,120]*pi/180;
+poza_1(:,:,6)=scene03_150deg;
+poza_1(:,:,7)=scene03_180deg;
+poza_1(:,:,8)=scene03_210deg;
+poza_1(:,:,9)=scene03_240deg;
+poza_1(:,:,10)=scene03_270deg;
+poza_1(:,:,11)=scene03_300deg;
+poza_1(:,:,12)=scene03_330deg;
+beta=[0,30,60,90,120,150,180,210,240,270,300,330]*pi/180;
 
 %% Filtering the measurements
-for k=1:length(poza_1(1,1,:))
+for k=1:12 %length(poza_1(1,1,:))
     poza=poza_1(:,:,k);
     poza=double(poza);
     poza(poza==0)=NaN;
@@ -29,12 +36,13 @@ end
 %% The posiions computation
 Ry=[cos(-pi),0,sin(-pi);0,1,0;-sin(-pi),0,cos(-pi)];
 PPuncte=[];
-nk=length(poza_1(1,1,:));
-for k=1:5
+nk=12 %length(poza_1(1,1,:));
+figure
+for k=1:12
     Puncte=[];
     poza=poza_1(:,:,k);
-    for i=1:5:np_x
-        for j=1:5:np_z
+    for i=1:5:np_x%
+        for j=1:5:np_z%
             y=poza(i,j);
             if isnan(y)
             else
@@ -48,12 +56,16 @@ for k=1:5
   Puncte=Ry*Puncte;
   Puncte=[cos(beta(1,k)),-sin(beta(1,k)),0;sin(beta(1,k)),cos(beta(1,k)),0;0,0,1]*Puncte;
   PPuncte=[PPuncte,Puncte];
+  plot3(Puncte(1,1:1:end),Puncte(2,1:1:end),Puncte(3,1:1:end),'.','Color',[0.3-k*0.01,0.1+k*0.05,0.7-k*0.05])
+  hold on
+  
 end
 
 
 %% The graphical representations of the points clouds
-figure  
-plot3(PPuncte(1,1:1:end),PPuncte(2,1:1:end),PPuncte(3,1:1:end),'.')
+%figure  
+%plot3(PPuncte(1,1:1:end),PPuncte(2,1:1:end),PPuncte(3,1:1:end),'.')
+
 xlabel 'X'
 ylabel 'Y'
 zlabel 'Z'
@@ -62,9 +74,11 @@ grid
 colormap('gray')
 
 %% The graphical representation of the initial image
+%{
 fh1 = figure();
 surf(-1*poza_1(:,:,5), 'EdgeColor','none')
-colormap('gray')
+colormap('cool')
 set(fh1,'Renderer','OpenGL')
 camlight
 view(0,90)
+%}
