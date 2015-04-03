@@ -1,0 +1,102 @@
+
+MATLAB File Help: icp	View code for icp	Default Topics
+icp
+Contents of Icp:
+
+demo                           - 
+icp                            - Perform the Iterative Closest Point algorithm on three dimensional point
+
+
+icp is both a directory and a function.
+
+  Perform the Iterative Closest Point algorithm on three dimensional point
+  clouds.
+ 
+  [TR, TT] = icp(q,p)   returns the rotation matrix TR and translation
+  vector TT that minimizes the distances from (TR * p + TT) to q.
+  p is a 3xm matrix and q is a 3xn matrix.
+ 
+  [TR, TT] = icp(q,p,k)   forces the algorithm to make k iterations
+  exactly. The default is 10 iterations.
+ 
+  [TR, TT, ER] = icp(q,p,k)   also returns the RMS of errors for k
+  iterations in a (k+1)x1 vector. ER(0) is the initial error.
+ 
+  [TR, TT, ER, t] = icp(q,p,k)   also returns the calculation times per
+  iteration in a (k+1)x1 vector. t(0) is the time consumed for preprocessing.
+ 
+  Additional settings may be provided in a parameter list:
+ 
+  Boundary
+        {[]} | 1x? vector
+        If EdgeRejection is set, a vector can be provided that indexes into
+        q and specifies which points of q are on the boundary.
+ 
+  EdgeRejection
+        {false} | true
+        If EdgeRejection is true, point matches to edge vertices of q are
+        ignored. Requires that boundary points of q are specified using
+        Boundary or that a triangulation matrix for q is provided.
+ 
+  Extrapolation
+        {false} | true
+        If Extrapolation is true, the iteration direction will be evaluated
+        and extrapolated if possible using the method outlined by 
+        Besl and McKay 1992.
+ 
+  Matching
+        {bruteForce} | Delaunay | kDtree
+        Specifies how point matching should be done. 
+        bruteForce is usually the slowest and kDtree is the fastest.
+        Note that the kDtree option is depends on the Statistics Toolbox
+        v. 7.3 or higher.
+ 
+  Minimize
+        {point} | plane | lmaPoint
+        Defines whether point to point or point to plane minimization
+        should be performed. point is based on the SVD approach and is
+        usually the fastest. plane will often yield higher accuracy. It 
+        uses linearized angles and requires surface normals for all points 
+        in q. Calculation of surface normals requires substantial pre
+        proccessing.
+        The option lmaPoint does point to point minimization using the non
+        linear least squares Levenberg Marquardt algorithm. Results are
+        generally the same as in points, but computation time may differ.
+ 
+  Normals
+        {[]} | n x 3 matrix
+        A matrix of normals for the n points in q might be provided.
+        Normals of q are used for point to plane minimization.
+        Else normals will be found through a PCA of the 4 nearest
+        neighbors.
+ 
+  ReturnAll
+        {false} | true
+        Determines whether R and T should be returned for all iterations
+        or only for the last one. If this option is set to true, R will be
+        a 3x3x(k+1) matrix and T will be a 3x1x(k+1) matrix.
+ 
+  Triangulation
+        {[]} | ? x 3 matrix
+        A triangulation matrix for the points in q can be provided,
+        enabling EdgeRejection. The elements should index into q, defining
+        point triples that act together as triangles.
+ 
+  Verbose
+        {false} | true
+        Enables extrapolation output in the Command Window.
+ 
+  Weight
+        {@(match)ones(1,m)} | Function handle
+        For point or plane minimization, a function handle to a weighting 
+        function can be provided. The weighting function will be called 
+        with one argument, a 1xm vector that specifies point pairs by 
+        indexing into q. The weighting function should return a 1xm vector 
+        of weights for every point pair.
+ 
+  WorstRejection
+        {0} | scalar in ]0; 1[
+        Reject a given percentage of the worst point pairs, based on their
+        Euclidean distance.
+ 
+  Martin Kjer and Jakob Wilm, Technical University of Denmark, 2012
