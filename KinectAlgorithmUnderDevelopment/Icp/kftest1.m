@@ -115,7 +115,7 @@ hold on
 plot3(Mp(1,:),Mp(2,:),Mp(3,:),'.','Color',tmpColor1);
 plot3(Dp(1,:),Dp(2,:),Dp(3,:),'.','Color',tmpColor2);
 %plot3(p2(1,:),p2(2,:),p2(3,:),'yo',p3(1,:),p3(2,:),p3(3,:),'r.');
-axis equal;
+axis([-1000 0 0 600 -200 400]);
 xlabel('x'); ylabel('y'); zlabel('z');
 title('Red: z=sin(x)*cos(y), blue: transformed point cloud');
 hold off
@@ -128,11 +128,11 @@ hold on
 plot3(Mp(1,:),Mp(2,:),Mp(3,:),'.','Color',tmpColor3);
 plot3(Dicp(1,:),Dicp(2,:),Dicp(3,:),'.','Color',tmpColor4);
 %plot3(p21,p22,p23,'ko',p31,p32,p33,'r.');
-axis equal;
+axis([-1000 0 0 600 -200 400]);
 xlabel('x'); ylabel('y'); zlabel('z');
 title('ICP result');
 hold off
-linkprop(ha, 'CameraPosition');
+linkprop(ha, {'CameraPosition','CameraTarget','CameraUpVector'});
 %linkaxes(ha, 'x'); 
 %clear ha;
 
