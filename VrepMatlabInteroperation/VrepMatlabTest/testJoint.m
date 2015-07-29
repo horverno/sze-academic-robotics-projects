@@ -1,0 +1,6 @@
+[err0, jointLBR] = vrep.simxGetObjectHandle(clientID,'LBR_iiwa_14_R820_joint1',vrep.simx_opmode_oneshot_wait)
+[err,pos] = vrep.simxGetJointMatrix(clientID,jointLBR,vrep.simx_opmode_oneshot_wait)
+vrep.simxSetJointTargetPosition(clientID,jointLBR,90,vrep.simx_opmode_oneshot)
+[err0, jointLBR1] = vrep.simxGetObjectHandle(clientID,'LBR_iiwa_14_R820_joint4',vrep.simx_opmode_oneshot_wait)
+[err,pos] = vrep.simxGetJointMatrix(clientID,jointLBR1,vrep.simx_opmode_oneshot_wait)
+vrep.simxSetJointTargetPosition(clientID,jointLBR1,-120,vrep.simx_opmode_oneshot)
