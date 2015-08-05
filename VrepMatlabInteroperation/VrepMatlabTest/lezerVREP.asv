@@ -1,0 +1,34 @@
+[img1,img2]=getVisionScanner();
+ximg1 = img1;
+ximg2 = img2;
+%theta = (-135*pi/180):((135.2*pi/180)/300):0
+%scn = (fliplr([ximg1(1:240),ximg2(end-233:end)]));
+scn = ([ximg2,ximg1,zeros(1,64)]);
+%scn = scn(60:536)
+dtheta = 0.001
+for m=-0.:0.01:0.5
+    %dtheta = 0.0085;
+    %currentAngle = (-135*pi)/180;
+    currentAngle = (-135*pi)/180;
+    x = zeros(1,size(scn,2));
+    y = zeros(1,size(scn,2));
+    x1 = zeros(1,size(scn,2));
+    y1 = zeros(1,size(scn,2));
+    for i=1:size(ximg1,2)
+        currentAngle = currentAngle + dtheta;
+        y(i) = ximg1(i)*sin(currentAngle);
+        x(i) = ximg1(i)*cos(currentAngle)+m*y(i);        
+        x1(i) = ximg2(i)*cos(-currentAngle);
+        y1(i) = ximg2(i)*sin(-currentAngle);
+    end
+    %theta = 0:(((rho*2*pi)/180)/size(scn,2)):(rho*2*pi/180);
+    %plot(scn)
+    subplot(1,2,1)
+    fill(x1,y1,'r')
+    subplot(1,2,2)
+    fill(x,y,'r')
+    pause(0.1)
+    drawnow
+    %plot(x)
+    %plot(scn)
+end
