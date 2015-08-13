@@ -16,14 +16,15 @@ rho = 135;
 dtheta = (rho/(size(scn,2)-1))*pi/180;
 theta = (-(rho/2)*pi/180):dtheta:((rho/2)*pi/180);
 %theta = (0:dtheta:((rho)*pi/180));
-[x,y] = pol2cart(theta, scn);
+scn2 = lensdistort(scn,0.5)
+[x,y] = pol2cart(theta, scn2);
 
 all = [x;y];
 
 figure(1)
 plot(scn)
 figure(2)
-plot(pol2cart(theta,scn))
+plot(pol2cart(theta,scn2))
 
 %{
 figure(2)
