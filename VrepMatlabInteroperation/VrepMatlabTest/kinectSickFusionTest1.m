@@ -3,15 +3,21 @@ close all
 %% Get kinect depth data
 [err, kinect_depth] = vrep.simxGetObjectHandle(0, 'kinect_depth#0', vrep.simx_opmode_oneshot_wait);
 [retCode, res, depth] = vrep.simxGetVisionSensorDepthBuffer2(0,kinect_depth, vrep.simx_opmode_oneshot_wait);
-
+depth = fliplr(double(depth)); % flip Kinect data
   
 %% Get sick data
-[err, sick] = vrep.simxGetObjectHandle(0,'SICK_S300_fast#1', vrep.simx_opmode_oneshot_wait);
+[err, sick] = vrep.simxGetObjectHandle(0,'SICK_S300_fast#0', vrep.simx_opmode_oneshot_wait);
 res = 19;
 
 while (res~=vrep.simx_return_ok)
-    [res,laser_scan]=vrep.simxReadStringStream(clientID,'measuredDataAtThisTime1', vrep.simx_opmode_streaming);
+    [res,laser_scan]=vrep.simxReadStringStream(clientID,'measuredDataAtThisTime0', vrep.simx_opmode_streaming);
 end
+
+data = vrep.simxUnpackFloats(laser_scan);
+data = reshape(data,3,size(data,2)/3);
+outer_hull = data(:,end-684:end);
+outer_hull = outer_hull / 3.42; %
+outer_hull = [outer_hull(1,:) ; (outer_hull(2,:) .* -1); (outer_hull(3,:) - 0.17)]; % flip laser scanner data according Y, move down according Z
 
 %% The angles for kinect
 delta_z=57*pi/180;
@@ -23,22 +29,15 @@ d_delta_x=-delta_x/2:delta_x/(np_x-1):delta_x/2;
 
 %% Plot original kinect data
 figure('Name', 'Kinect')
-mesh(double(depth))
-
+mesh(depth)
 
 %% Plot original sick data
-data = vrep.simxUnpackFloats(laser_scan);
-data = reshape(data,3,size(data,2)/3);
-%outer_hull = data(:,end-684:end)
-outer_hull = data(:,1:684);
-outer_hull = outer_hull / 10; % test todo
-
 figure('Name', 'Laser scanner')
 scatter3(outer_hull(1,:),outer_hull(2,:),outer_hull(3,:))
 
 %% The data base of mesurements
 poza_1(:,:,1)=depth;
-beta=[0,30,60,90,120,150,180,210,240,270,300,330]*pi/180;
+beta=[270,30,60,90,120,150,180,210,240,270,300,330]*pi/180;
 
 %% Filtering the measurements
     poza=poza_1(:,:,1);%
@@ -74,8 +73,11 @@ PPuncte=[];
   PPuncte=[PPuncte,Puncte];
   plot3(Puncte(1,1:1:end),Puncte(2,1:1:end),Puncte(3,1:1:end),'.','Color','b')
   hold on
+  xlabel 'X'
+  ylabel 'Y'
+  zlabel 'Z'
   plot3(outer_hull(1,:),outer_hull(2,:),outer_hull(3,:),'.', 'Color', 'r')
- 
+  hold on
 
 
 
