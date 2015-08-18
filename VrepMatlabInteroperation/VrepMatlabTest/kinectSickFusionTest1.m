@@ -1,5 +1,9 @@
 %[vrep, clientID] = connectVREP('127.0.0.1',19997)
 close all
+
+[err,left]=vrep.simxGetObjectHandle(clientID,'wheel_left#0',vrep.simx_opmode_oneshot_wait)
+vrep.simxSetJointTargetPosition(clientID,left,2*pi,vrep.simx_opmode_oneshot_wait)
+
 %% Get kinect depth data
 [err, kinect_depth] = vrep.simxGetObjectHandle(0, 'kinect_depth#0', vrep.simx_opmode_oneshot_wait);
 [retCode, res, depth] = vrep.simxGetVisionSensorDepthBuffer2(0,kinect_depth, vrep.simx_opmode_oneshot_wait);
@@ -28,10 +32,12 @@ d_delta_z=-delta_z/2:delta_z/(np_z-1):delta_z/2;
 d_delta_x=-delta_x/2:delta_x/(np_x-1):delta_x/2;
 
 %% Plot original kinect data
+daspect([1 1 1])
 figure('Name', 'Kinect')
 mesh(depth)
 
 %% Plot original sick data
+daspect([1 1 1])
 figure('Name', 'Laser scanner')
 scatter3(outer_hull(1,:),outer_hull(2,:),outer_hull(3,:))
 
@@ -73,12 +79,14 @@ PPuncte=[];
   PPuncte=[PPuncte,Puncte];
   plot3(Puncte(1,1:1:end),Puncte(2,1:1:end),Puncte(3,1:1:end),'.','Color','b')
   hold on
+  set(gca,'DataAspectRatio',[1 1 1])
   xlabel 'X'
   ylabel 'Y'
   zlabel 'Z'
   plot3(outer_hull(1,:),outer_hull(2,:),outer_hull(3,:),'.', 'Color', 'r')
   hold on
-
-
-
-
+  auxK = [cosd( 57/2), 0, cosd( 57/2); sind( 57/2), 0, -sind( 57/2); 0, 0, 0] % auxiliary lines to Kinect display
+  auxS = [cosd(270/2), 0, cosd(270/2); sind(270/2), 0, -sind(270/2); 0, 0, 0] % auxuilary lines to laser display
+  plot3(auxK(1,:),auxK(2,:),auxK(3,:),'-', 'Color', 'g')
+  hold on
+  plot3(auxS(1,:),auxS(2,:),auxS(3,:),'-', 'Color', 'b')
