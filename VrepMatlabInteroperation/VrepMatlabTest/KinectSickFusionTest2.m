@@ -1,27 +1,8 @@
-%[vrep, clientID] = connectVREP('127.0.0.1',19997)
-close all
-
-[err,left]=vrep.simxGetObjectHandle(clientID,'wheel_left#0',vrep.simx_opmode_oneshot_wait);
-vrep.simxSetJointTargetPosition(clientID,left,2*pi,vrep.simx_opmode_oneshot_wait);
-
-%% Get kinect depth data
-[err, kinect_depth] = vrep.simxGetObjectHandle(0, 'kinect_depth#0', vrep.simx_opmode_oneshot_wait);
-[retCode, res, depth] = vrep.simxGetVisionSensorDepthBuffer2(0,kinect_depth, vrep.simx_opmode_oneshot_wait);
-depth = fliplr(double(depth)); % flip Kinect data
-  
-%% Get sick data
-[err, sick] = vrep.simxGetObjectHandle(0,'SICK_S300_fast#0', vrep.simx_opmode_oneshot_wait);
-res = 19;
-
-while (res~=vrep.simx_return_ok)
-    [res,laser_scan]=vrep.simxReadStringStream(clientID,'measuredDataAtThisTime0', vrep.simx_opmode_streaming);
+if(exist('kinect3d01','var') == 0)
+    load('vrepscene01.mat');
 end
 
-data = vrep.simxUnpackFloats(laser_scan);
-data = reshape(data,3,size(data,2)/3);
-outer_hull = data(:,end-684:end);
-outer_hull = outer_hull / 3.42; %
-outer_hull = [outer_hull(1,:) ; (outer_hull(2,:) .* -1); (outer_hull(3,:) - 0.17)]; % flip laser scanner data according Y, move down according Z
+close all
 
 %% The angles for kinect
 delta_z=57*pi/180;
@@ -34,15 +15,15 @@ d_delta_x=-delta_x/2:delta_x/(np_x-1):delta_x/2;
 %% Plot original kinect data
 figure('Name', 'Kinect')
 daspect([1 1 1])
-mesh(depth)
+mesh(kinect3d01)
 
 %% Plot original sick data
 figure('Name', 'Laser scanner')
 daspect([1 1 1])
-scatter3(outer_hull(1,:),outer_hull(2,:),outer_hull(3,:))
+scatter3(sick3d01(1,:),sick3d01(2,:),sick3d01(3,:))
 
 %% The data base of mesurements
-poza_1(:,:,1)=depth;
+poza_1(:,:,1)=kinect3d01;
 beta=[270,30,60,90,120,150,180,210,240,270,300,330]*pi/180;
 
 %% Filtering the measurements
@@ -83,7 +64,7 @@ PPuncte=[];
   xlabel 'X'
   ylabel 'Y'
   zlabel 'Z'
-  plot3(outer_hull(1,:),outer_hull(2,:),outer_hull(3,:),'.', 'Color', 'r')
+  plot3(sick3d01(1,:),sick3d01(2,:),sick3d01(3,:),'.', 'Color', 'r')
   hold on
   auxK = [cosd( 57/2), 0, cosd( 57/2); sind( 57/2), 0, -sind( 57/2); 0, 0, 0]; % auxiliary lines to Kinect display
   auxS = [cosd(270/2), 0, cosd(270/2); sind(270/2), 0, -sind(270/2); 0, 0, 0]; % auxuilary lines to laser display
