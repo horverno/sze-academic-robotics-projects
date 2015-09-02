@@ -3,7 +3,7 @@
 This repository contains various projects developed in the Széchenyi István University (SZE) located in Győr, Hungary.
 
 ## 1. V-REP MATLAB interoperation demo
-*Name*: `RoboticArmKinect`
+*Name*: `VrepMatlabInteroperation`
 
 *Description*: The aim of the project is to demonstrate the V-REP Remote API functions in MATLAB.
 
@@ -26,6 +26,6 @@ The illustration of the scenario:
 ![alt tag](http://www.sze.hu/~herno/robotics/RobotFollowsHuman.png)
 
 ## 3. Robotic arm - Kinect project
-*Name*: `VrepMatlabInteroperation`
+*Name*: `RoboticArmKinect`
 
 *Description*:A project to control an own developed robotic arm with the help of Kinect. You can watch a [video on youtube](https://youtu.be/tiSzojabtLc) about this project.
