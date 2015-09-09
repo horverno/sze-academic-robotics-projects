@@ -1,4 +1,7 @@
-%[vrep, clientID] = connectVREP('127.0.0.1',19997)
+if(exist('kinect3d01','var') == 0)
+    load('vrepscene01.mat');
+end
+
 close all
 
 [err,left]=vrep.simxGetObjectHandle(clientID,'wheel_left#0',vrep.simx_opmode_oneshot_wait);
