@@ -1,9 +1,9 @@
-if(exist('kinect3d01','var') == 0)
-    load('vrepscene01.mat');
+%% Kinect + Laser scanner (sick s300) fusion test from Vrep
+%% Connect to V-REP (if not already connected)
+if(exist('vrep','var') == 0)
+    [vrep, clientID] = connectVREP('127.0.0.1',19997);
 end
-
-close all
-
+%%
 [err,left]=vrep.simxGetObjectHandle(clientID,'wheel_left#0',vrep.simx_opmode_oneshot_wait);
 vrep.simxSetJointTargetPosition(clientID,left,2*pi,vrep.simx_opmode_oneshot_wait);
 

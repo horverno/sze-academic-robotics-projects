@@ -1,3 +1,5 @@
+%% Kinect + Laser scanner (sick s300) fusion test loaded from file
+%%
 if(exist('kinect3d01','var') == 0)
     load('vrepscene01.mat');
 end
