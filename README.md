@@ -29,3 +29,9 @@ The illustration of the scenario:
 *Name*: `RoboticArmKinect`
 
 *Description*:A project to control an own developed robotic arm with the help of Kinect. You can watch a [video on youtube](https://youtu.be/tiSzojabtLc) about this project.
+
+## 4. V-REP C# interoperation demo
+*Name*: `VrepCsharpInteroperation`
+
+*Description*: The aim of the project is to demonstrate the V-REP Remote API functions in C#.
+
