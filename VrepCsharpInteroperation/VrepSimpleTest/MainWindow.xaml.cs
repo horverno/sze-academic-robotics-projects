@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using remoteApiNETWrapper;
 
 namespace VrepSimpleTest
 {
@@ -20,20 +21,38 @@ namespace VrepSimpleTest
     /// </summary>
     public partial class MainWindow : Window
     {
+        /// <summary>
+        /// True - connected to V-REP; False - not connected
+        /// </summary>
         bool _connected = false;
-        int _clientID = 0;
+        /// <summary>
+        /// V-REP connection ID
+        /// </summary>
+        int _clientID = -1; 
         public MainWindow()
         {
             InitializeComponent();
             stackControls.Visibility = Visibility.Hidden;
         }
-
+        /// <summary>
+        /// Connect or disconnect from V-REP
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void buttonConnect_Click(object sender, RoutedEventArgs e)
         {
-            if (!_connected)
+            if (!_connected) // If not connected - try to connect
             {
-                _clientID = remoteApiNETWrapper.VREPWrapper.simxStart("127.0.0.1", 19997, true, true, 5000, 5);
-                if (_clientID != -1)
+                try
+                {
+                    _clientID = VREPWrapper.simxStart("127.0.0.1", 19997, true, true, 5000, 5);
+                }
+                catch (DllNotFoundException ex)
+                {
+                    MessageBox.Show("remoteApi.dll missing");
+                }
+                
+                if (_clientID != -1) // Successfully connected to V-REP
                 {
                     System.Diagnostics.Debug.WriteLine("Connected to V-REP");
                     buttonConnect.Background = Brushes.LightGreen;
@@ -41,7 +60,7 @@ namespace VrepSimpleTest
                     stackControls.Visibility = Visibility.Visible;
                     buttonConnect.Content = "Disconnect";
                 }
-                else
+                else // Connection trial failed
                 {
                     System.Diagnostics.Debug.WriteLine("Error connecting to V-REP");
                     MessageBox.Show("Error connecting to V-REP :(");
@@ -50,9 +69,9 @@ namespace VrepSimpleTest
                     stackControls.Visibility = Visibility.Hidden;
                 }
             }
-            else
+            else // If connected - try to disconnect 
             {
-                remoteApiNETWrapper.VREPWrapper.simxFinish(_clientID);
+                VREPWrapper.simxFinish(_clientID);
                 buttonConnect.Background = Brushes.OrangeRed;
                 buttonConnect.Content = "Reconnect";
                 _connected = false;
@@ -62,15 +81,15 @@ namespace VrepSimpleTest
         }
         private void buttonGetPos_Click(object sender, RoutedEventArgs e)
         {
-            int handleNeo0, handleNeo1;
-            float[] pos = new float[3];
-            remoteApiNETWrapper.VREPWrapper.simxGetObjectHandle(_clientID, "neobotix#0", out handleNeo0, remoteApiNETWrapper.simx_opmode.oneshot_wait);
+            int handleNeo0, handleNeo1; // The handles for the robots
+            float[] pos = new float[3]; // The position of the #0 robot relative to the #1 robot
+            VREPWrapper.simxGetObjectHandle(_clientID, "neobotix#0", out handleNeo0, simx_opmode.oneshot_wait);
             System.Diagnostics.Debug.WriteLine("Handle neobotix#0: " + handleNeo0);
-            remoteApiNETWrapper.VREPWrapper.simxGetObjectHandle(_clientID, "neobotix#1", out handleNeo1, remoteApiNETWrapper.simx_opmode.oneshot_wait);
+            VREPWrapper.simxGetObjectHandle(_clientID, "neobotix#1", out handleNeo1, simx_opmode.oneshot_wait);
             System.Diagnostics.Debug.WriteLine("Handle neobotix#1: " + handleNeo1);
-            remoteApiNETWrapper.VREPWrapper.simxGetObjectPosition(_clientID, handleNeo0, handleNeo1, pos, remoteApiNETWrapper.simx_opmode.oneshot_wait);
-            System.Diagnostics.Debug.WriteLine("Position: x: " + pos[2] + " y: " + pos[1] + " z: " + pos[0]);
-            txtInfo.Text = "x: " + pos[2] + " y: " + pos[1] + " z: " + pos[0];
+            VREPWrapper.simxGetObjectPosition(_clientID, handleNeo0, handleNeo1, pos, simx_opmode.oneshot_wait);
+            System.Diagnostics.Debug.WriteLine("x:{0:F4} y:{1:F4} z:{2:F4}", pos[2], pos[1], pos[0]);
+            txtInfo.Text = String.Format("x:{0:F4} y:{1:F4} z:{2:F4}", pos[2], pos[1], pos[0]);
         }
         private void buttonScan_Click(object sender, RoutedEventArgs e)
         {
