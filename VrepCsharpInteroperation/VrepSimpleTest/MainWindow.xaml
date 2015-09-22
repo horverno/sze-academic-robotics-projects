@@ -1,19 +1,23 @@
 ﻿<Window x:Class="VrepSimpleTest.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="V-REP simple test" Height="500" Width="800">
+        Title="V-REP simple test" Height="500" Width="800"
+        Closed="Window_Closed"
+        DataContext="{Binding RelativeSource={RelativeSource Self}}">
     <Grid Margin="0,1,0,-1">
         <StackPanel HorizontalAlignment="Left" Width="200">
             <Button Click="buttonConnect_Click" Background="OrangeRed" Margin="4" Height="30" x:Name="buttonConnect">Connect</Button>
         </StackPanel>
         <StackPanel HorizontalAlignment="Left" Width="200" Margin="0, 36, 0, 0"  x:Name="stackControls">
-            <Button Click="buttonGetPos_Click"  Margin="4" x:Name="buttonGetPos">Get position</Button>
-            <Button Click="buttonScan_Click" Margin="4" x:Name="buttonScan">Scan</Button>
-            <Button Margin="4" Content="Forward" />
-            <Button Margin="4" >Backward</Button>
-            <Button Margin="4" >Left</Button>
-            <Button Margin="4" >Right</Button>
+            <Button Click="buttonGetPos_Click"  Margin="4" x:Name="buttonGetPos" Content="Get position" />
+            <Button Click="buttonScan_Click" Margin="4" x:Name="buttonScan" Content="Scan" />
+            <Button Margin="4" Click="buttonFwd_Click" Content="Forward" x:Name="buttonFwd" />
+            <Button Margin="4" Click="buttonBck_Click" Content="Backward" x:Name="buttonBck"/>
+            <Button Margin="4" Click="buttonLeft_Click" Content="Left" x:Name="buttonLeft" />
+            <Button Margin="4" Click="buttonRight_Click" Content="Right" x:Name="buttonRight" />
+            <Button Margin="4" Click="buttonStop_Click"  Content="Stop" x:Name="buttonStop" Background="OrangeRed"/>
             <Button Margin="4" >Clear canvas</Button>
+            <TextBlock x:Name="txtData" Margin="4" Text="{Binding PositionString}" />
             <TextBlock x:Name="txtInfo" Margin="4" Text="..."></TextBlock>
         </StackPanel>
         <Grid>
