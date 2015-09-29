@@ -33,6 +33,7 @@ namespace remoteApiNETWrapper
 
         [DllImport("remoteApi.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern simx_error simxSetStringSignal(int clientID, string signalName, string value, int length, simx_opmode opmode);
+                                  //int simxSetStringSignal(int clientID,final String signalName, final CharWA signalValue,int operationMode)
 
         [DllImport("remoteApi.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern simx_error simxGetStringSignal(int clientID, string signalName, ref IntPtr pointerToValue, ref int signalLength, simx_opmode opmode);
@@ -77,8 +78,14 @@ namespace remoteApiNETWrapper
         public static extern simx_error simxPauseCommunication(int cliendID, int pause);
 
         [DllImport("remoteApi.dll", CallingConvention = CallingConvention.Cdecl)]
+        //simxReadProximitySensor(int clientID,int sensorHandle, 
         public extern static simx_error simxReadProximitySensor(int clientID, int sensorHandle,
                                                          ref char detectionState, float[] detectionPoint, ref int objectHandle, float[] normalVector, simx_opmode opmode);
+
+        [DllImport("remoteApi.dll", CallingConvention = CallingConvention.Cdecl)]
+        public extern static simx_error simxReadStringStream(int clientID, string signalName, ref IntPtr pointerToValue, ref int signalLength, simx_opmode opmode);
+                              //simxInt simxReadStringStream(simxInt clientID, const simxChar* sigName, simxUChar** sigVal,simxInt* sigLength, simxInt operationMode)
+
 
         [DllImport("remoteApi.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern simx_error simxSetJointTargetPosition(int clientID, int jointHandle, float targetPosition, simx_opmode opmode);
@@ -99,10 +106,17 @@ namespace remoteApiNETWrapper
         public static extern simx_error simxGetUIEventButton(int clientID, int uiHandle, ref int uiEventButtonID, IntPtr aux, simx_opmode opmode);
 
         [DllImport("remoteApi.dll", CallingConvention = CallingConvention.Cdecl)]
-        // public static extern simx_error simxGetUIHandle(int clientID, string uiName, out int handle, simx_opmode opmode);
         public static extern simx_error simxGetUIHandle(int clientID, string uiName, IntPtr p, simx_opmode opmode);
 
         [DllImport("remoteApi.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern simx_error simxGetObjectHandle(int clientID, string objectName, out int handle, simx_opmode opmode);
+
+        // todo - pull request to SeveQ / remoteApiNETWrapper
+        [DllImport("remoteApi.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern simx_error  simxStartSimulation(int clientID, simx_opmode opmode);
+
+        // todo - pull request to SeveQ / remoteApiNETWrapper
+        [DllImport("remoteApi.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern simx_error simxStopSimulation(int clientID, simx_opmode opmode);
     }
 }

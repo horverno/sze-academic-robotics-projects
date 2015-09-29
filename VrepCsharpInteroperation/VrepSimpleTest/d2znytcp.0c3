@@ -51,12 +51,10 @@ namespace VrepSimpleTest
         /// <summary>
         /// The handles for the motors
         /// </summary>
-        IntPtr _signalValuePtr;
-        int _signalLength;
+        IntPtr _Ptr1;
+        float _signal1;
         int _handleLeftMotor0, _handleRightMotor0;
         float _posLeftMotor0;
-        float[,] _laserScannerData;
-
 
         public MainWindow()
         {
@@ -126,7 +124,7 @@ namespace VrepSimpleTest
                 if (_clientID != -1) // Successfully connected to V-REP
                 {
                     Debug.WriteLine("Connected to V-REP");
-                    buttonConnect.Background = Brushes.LightSeaGreen;
+                    buttonConnect.Background = Brushes.LightGreen;
                     _connected = true;
                     stackControls.Visibility = Visibility.Visible;
                     buttonConnect.Content = "Disconnect";
@@ -147,7 +145,7 @@ namespace VrepSimpleTest
                 {
                     Debug.WriteLine("Error connecting to V-REP");
                     MessageBox.Show("Error connecting to V-REP :(");
-                    buttonConnect.Background = Brushes.IndianRed;
+                    buttonConnect.Background = Brushes.OrangeRed;
                     _connected = false;
                     stackControls.Visibility = Visibility.Hidden;
                 }
@@ -155,7 +153,7 @@ namespace VrepSimpleTest
             else // If connected - try to disconnect 
             {
                 VREPWrapper.simxFinish(_clientID);
-                buttonConnect.Background = Brushes.IndianRed;
+                buttonConnect.Background = Brushes.OrangeRed;
                 buttonConnect.Content = "Reconnect";
                 _connected = false;
                 stackControls.Visibility = Visibility.Hidden;
@@ -179,44 +177,8 @@ namespace VrepSimpleTest
         }
         private void buttonScan_Click(object sender, RoutedEventArgs e)
         {
-            int i;
-            // reading the laser scanner stream 
-            VREPWrapper.simxReadStringStream(_clientID, "measuredDataAtThisTime0", ref _signalValuePtr, ref _signalLength, simx_opmode.streaming);
-            //Debug.WriteLine(String.Format("test: {0:X8} {1:D} {2:X8}", _signalValuePtr, _signalLength, _signalValuePtr+_signalLength));
-            float[] f = new float[685 * 3];
-            if (_signalLength >= f.GetLength(0))
-            {
-                _laserScannerData = new float[3, f.GetLength(0) / 3];
-                PointCollection laserPointCollection = new PointCollection();
-                Polyline laserScannerLine = new Polyline(); // polyline for laser scanner data display
-                laserScannerLine = new Polyline();
-                laserScannerLine.Stroke = System.Windows.Media.Brushes.DarkMagenta;
-                laserScannerLine.StrokeThickness = 2;                
-
-                // todo read the latest stream (this is not the latest)
-                unsafe
-                {
-                    float* pp = (float*)(_signalValuePtr).ToPointer();
-                    //Debug.WriteLine("pp: " + *pp);
-                    for (i = 0; i < f.GetLength(0); i++)
-                            f[i] = (float)*pp++; // pointer to float array 
-                }
-                i = 0;
-                // reshaping the 1D [3*685] data to 2D [3, 685] > x, y, z coordinates
-                for (i = 0; i < f.GetLength(0); i++)
-                    if (!(Math.Abs((float)f[i]) < 0.000001))
-                        _laserScannerData[i % 3, i / 3] = (float)f[i];
-                for (i = 0; i < _laserScannerData.GetLength(1); i++)
-                {
-                    //Debug.WriteLine(_laserScannerData[0, i] + ";\t" + _laserScannerData[1, i] + ";\t" + _laserScannerData[2, i]);
-                    if (!(Math.Abs((float)_laserScannerData[0, 1]) < 0.001))
-                        laserPointCollection.Add(new Point(_laserScannerData[0, i] * 40 + 50, _laserScannerData[1, i] * 40 + 150));
-                }
-                //Debug.WriteLine("laserPointCollection count: " + laserPointCollection.Count);
-                laserScannerLine.Points = laserPointCollection; // adds the data to the polyline
-                canvScan.Children.Add(laserScannerLine); // displays the polyline on the cansvas
-                //Debug.Write("--end scanner--");
-            }
+            VREPWrapper.simxReadStringStream(_clientID, "measuredDataAtThisTime0", ref _Ptr1, ref _signal1, simx_opmode.streaming);
+            Debug.WriteLine("test: " + Convert.ToSingle(_signal1).ToString() + "    " + _Ptr1);
         }
 
         public void upd()
@@ -226,11 +188,12 @@ namespace VrepSimpleTest
             {
                 VREPWrapper.simxGetObjectPosition(_clientID, _handleNeo0, _handleNeo1, _pos, simx_opmode.oneshot_wait);
                 VREPWrapper.simxGetJointPosition(_clientID, _handleLeftMotor0, ref _posLeftMotor0, simx_opmode.oneshot_wait);
+                VREPWrapper.s
                 PositionString = String.Format("x:{0:F4} y:{1:F4} z:{2:F4}", _pos[2], _pos[1], _pos[0]);
                 WheelString = String.Format("wheel:{0:F3}", _posLeftMotor0);
                 WheelX = (Math.Cos(_posLeftMotor0) * 100) + 150;
                 WheelY = (Math.Sin(_posLeftMotor0) * 100) + 150;
-                //Debug.WriteLine("x:{0:F4} y:{1:F4}", WheelX, WheelY);
+                Debug.WriteLine("x:{0:F4} y:{1:F4}", WheelX, WheelY);
                 Thread.Sleep(400);
             }
         }
@@ -276,8 +239,7 @@ namespace VrepSimpleTest
             }
             catch (Exception ex)
             {
-                //todo
-                //MessageBox.Show("Exception occured");
+                MessageBox.Show("Exception occured");
             }
 
             if (_connected)
@@ -301,11 +263,6 @@ namespace VrepSimpleTest
             VREPWrapper.simxStopSimulation(_clientID, simx_opmode.oneshot_wait);
             Thread.Sleep(400);
             VREPWrapper.simxStartSimulation(_clientID, simx_opmode.oneshot_wait);
-        }
-
-        private void buttonClearCanvas_Click(object sender, RoutedEventArgs e)
-        {
-            canvScan.Children.Clear();
         }
     }
 }

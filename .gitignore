@@ -8,6 +8,7 @@
 *.class
 *.o
 *.so
+*.asv
 
 # Packages #
 ############

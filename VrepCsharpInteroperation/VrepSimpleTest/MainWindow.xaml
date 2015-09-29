@@ -6,7 +6,7 @@
         DataContext="{Binding RelativeSource={RelativeSource Self}}">
     <Grid Margin="0,1,0,-1">
         <StackPanel HorizontalAlignment="Left" Width="200">
-            <Button Click="buttonConnect_Click" Background="OrangeRed" Margin="4" Height="30" x:Name="buttonConnect">Connect</Button>
+            <Button Click="buttonConnect_Click" Background="IndianRed" Margin="4" Height="30" x:Name="buttonConnect">Connect</Button>
         </StackPanel>
         <StackPanel HorizontalAlignment="Left" Width="200" Margin="0, 36, 0, 0"  x:Name="stackControls">
             <Button Click="buttonGetPos_Click"  Margin="4" x:Name="buttonGetPos" Content="Get position" />
@@ -15,13 +15,20 @@
             <Button Margin="4" Click="buttonBck_Click" Content="Backward" x:Name="buttonBck"/>
             <Button Margin="4" Click="buttonLeft_Click" Content="Left" x:Name="buttonLeft" />
             <Button Margin="4" Click="buttonRight_Click" Content="Right" x:Name="buttonRight" />
-            <Button Margin="4" Click="buttonStop_Click"  Content="Stop" x:Name="buttonStop" Background="OrangeRed"/>
-            <Button Margin="4" >Clear canvas</Button>
+            <Button Margin="4" Click="buttonStop_Click"  Content="Stop" x:Name="buttonStop" Background="IndianRed"/>
+            <Button Margin="4" Click="buttonResetSim_Click"  Content="Reset simulation" x:Name="buttonResetSim" Background="LightCoral"/>
+            <Button Margin="4" Click="buttonClearCanvas_Click" x:Name="buttonClearCanvas">Clear canvas</Button>
             <TextBlock x:Name="txtData" Margin="4" Text="{Binding PositionString}" />
-            <TextBlock x:Name="txtInfo" Margin="4" Text="..."></TextBlock>
+            <TextBlock x:Name="txtInfo" Margin="4" Text="{Binding WheelString}"></TextBlock>
+            <!-- <TextBox x:Name="txLength" Margin="4" Text="685" />  -->
         </StackPanel>
-        <Grid>
-            <Canvas Width="300" Height="300" Background="LightYellow" x:Name="canvScan" />
+        <Grid Margin="205,0,0,0">
+
+            <Canvas Width="300" Height="300" Background="LightYellow" x:Name="canvWheel" Margin="10,84,277,85" >
+                <Line Stroke="LightSeaGreen" StrokeThickness="10" X1="150" Y1="150" X2="{Binding WheelX}" Y2="{Binding WheelY}" />
+                <Ellipse Stroke="DarkMagenta" StrokeThickness="10" Width="200" Height="200" Canvas.Left="50" Canvas.Top="50" />
+            </Canvas>
+            <Canvas Width="300" Height="300" Background="LightBlue" x:Name="canvScan" Margin="277,84,10,85" />
         </Grid>
     </Grid>
 </Window>

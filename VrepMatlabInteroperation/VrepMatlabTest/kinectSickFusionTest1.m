@@ -8,12 +8,12 @@ end
 vrep.simxSetJointTargetPosition(clientID,left,2*pi,vrep.simx_opmode_oneshot_wait);
 
 %% Get kinect depth data
-[err, kinect_depth] = vrep.simxGetObjectHandle(0, 'kinect_depth#0', vrep.simx_opmode_oneshot_wait);
+[err, kinect_depth] = vrep.simxGetObjectHandle(clientID, 'kinect_depth#0', vrep.simx_opmode_oneshot_wait);
 [retCode, res, depth] = vrep.simxGetVisionSensorDepthBuffer2(0,kinect_depth, vrep.simx_opmode_oneshot_wait);
 depth = fliplr(double(depth)); % flip Kinect data
   
 %% Get sick data
-[err, sick] = vrep.simxGetObjectHandle(0,'SICK_S300_fast#0', vrep.simx_opmode_oneshot_wait);
+[err, sick] = vrep.simxGetObjectHandle(clientID,'SICK_S300_fast#0', vrep.simx_opmode_oneshot_wait);
 res = 19;
 
 while (res~=vrep.simx_return_ok)
