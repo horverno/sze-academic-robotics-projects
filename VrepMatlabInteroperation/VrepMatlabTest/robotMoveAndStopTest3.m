@@ -15,7 +15,7 @@ end
 [rtn,neoStartPos] = vrep.simxGetObjectPosition(clientID, neoHandle0, origoHandle, vrep.simx_opmode_oneshot_wait);
 r = 0.125;
 turns = 0;
-target_position = 8.0; % 
+target_position = 4.0; % 
 omega = 2;
 time = target_position/(r*omega);
 target_angle = time * omega;
@@ -28,9 +28,10 @@ i = 0;
 pos = 0;
 prevPos = [0 0]; % contains the actual (2) and the previous position of the wheel (1) 
 pause(1);
-vrep.simxSetJointTargetVelocity(clientID, motorLeft, 2, vrep.simx_opmode_oneshot_wait);
+vrep.simxSetJointTargetVelocity(clientID, motorLeft, -2, vrep.simx_opmode_oneshot_wait);
 vrep.simxSetJointTargetVelocity(clientID, motorRight, 2, vrep.simx_opmode_oneshot_wait);
 fig2 = figure('Name', 'Mapping');
+thetaHistory = [0];
 while turns*pi*2+pos < target_angle % the robot moves until it reaches the target
     [res, pos] = vrep.simxGetJointPosition(clientID, motorRight, vrep.simx_opmode_oneshot_wait); 
     i = i + 1;
@@ -50,12 +51,17 @@ while turns*pi*2+pos < target_angle % the robot moves until it reaches the targe
     %outer_hull3 = outer_hull3 / 3.42; %
     [rtn,neoEndPos] = vrep.simxGetObjectPosition(clientID, neoHandle0, origoHandle, vrep.simx_opmode_oneshot_wait);
     [rtn,neoEndTheta] = vrep.simxGetObjectOrientation(clientID, neoHandle0, origoHandle, vrep.simx_opmode_oneshot_wait);
-
+    if neoEndTheta(1) < 0
+        neoEndTheta(2) = (neoEndTheta(2) * - 1 - pi/2)/2;
+    else
+        neoEndTheta(2) = (neoEndTheta(2) + pi/2)/2;
+    end
+    thetaHistory = [thetaHistory; neoEndTheta(2)];
     outer_hull3 = [outer_hull3(1,:) ; (outer_hull3(2,:) .* -1); (outer_hull3(3,:) - 0.17)]; % flip laser scanner data according Y, move down according Z
-    oh3 = [cos(neoEndTheta(1)+pi),-sin(neoEndTheta(1)+pi),0;sin(neoEndTheta(1)+pi),cos(neoEndTheta(1)+pi),0;0,0,1]*outer_hull3;
+    thetaRotate = (2 * neoEndTheta(2) - pi);
+    oh3 = [cos(thetaRotate),-sin(thetaRotate),0;sin(thetaRotate),cos(thetaRotate),0;0,0,1]*outer_hull3;
     oh3 = [oh3(1,:) + neoEndPos(1); oh3(2,:) + neoEndPos(2); oh3(3,:)];
     plot(oh3(1,:),oh3(2,:), '*', 'Color', rand(1,3))
-    plot(neoEndPos(1),neoEndPos(2), '*', 'Color', rand(1,3))
     drawnow %
     hold on
 end
