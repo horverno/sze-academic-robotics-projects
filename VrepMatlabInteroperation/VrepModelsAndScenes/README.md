@@ -3,3 +3,4 @@ Some models (including more versions of the Neobotix MP500) and scenes (includin
 
 ## Demo images
 ![alt tag](http://www.sze.hu/~herno/robotics/NeobotixVrepModel.png)
+![alt tag](http://www.sze.hu/~herno/robotics/NeobotixRealAndModel.png)
