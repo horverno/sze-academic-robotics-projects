@@ -46,13 +46,14 @@ if(exist('vrep','var') == 0)
 end
 [~,motorLeft] = vrep.simxGetObjectHandle(clientID, 'wheel_left#0', vrep.simx_opmode_oneshot_wait);
 [~,motorRight] = vrep.simxGetObjectHandle(clientID, 'wheel_right#0', vrep.simx_opmode_oneshot_wait);
+[~,sickHandle] = vrep.simxGetObjectHandle(clientID, 'SICK_S300_fast#0', vrep.simx_opmode_oneshot_wait);
 [~,neoHandle0] = vrep.simxGetObjectHandle(clientID, 'neobotix#0', vrep.simx_opmode_oneshot_wait);
 [~,origoHandle] = vrep.simxGetObjectHandle(clientID, 'origo', vrep.simx_opmode_oneshot_wait);
 %% Push button callbacks
 
 function FwdButton_Callback(~,~) 
-  image(RobotPathLayer); 
   DrawRobot();
+  DrawWall();
   SetWheelSpeed(2,2);
 end
 
@@ -71,8 +72,8 @@ function RghButton_Callback(~,~)
 end 
 
 function StpButton_Callback(~,~) 
-  image(RobotPathLayer);   
   DrawWall();
+  DRawRobot();
   SetWheelSpeed(0,0);
 end
 
@@ -88,8 +89,9 @@ function SetWheelSpeed(left, right)
   vrep.simxSetJointTargetVelocity(clientID, motorLeft, left, vrep.simx_opmode_oneshot_wait);
   vrep.simxSetJointTargetVelocity(clientID, motorRight, right, vrep.simx_opmode_oneshot_wait);
 end
+
 function GetPose()
-  [~,neoPos] = vrep.simxGetObjectPosition(clientID, neoHandle0, origoHandle, vrep.simx_opmode_oneshot_wait);
+  [~,neoPos] = vrep.simxGetObjectPosition(clientID, sickHandle, origoHandle, vrep.simx_opmode_oneshot_wait);
   [~,neoOri] = vrep.simxGetObjectOrientation(clientID, neoHandle0, origoHandle, vrep.simx_opmode_oneshot_wait);
   x = int64((neoPos(1)+10)*mapZoom); % convert neoPos to matrix element
   y = int64((neoPos(2))*mapZoom); % convert neoPos to matrix element
@@ -112,10 +114,11 @@ function GetLaserScannerData()
   end
   laserScan = vrep.simxUnpackFloats(laserScan);
   laserScan = reshape(laserScan,3,size(laserScan,2)/3);
-  if size(laserScan,2) > 684
+  if size(laserScan,2) > 684 % todo
     laserScan = laserScan(:,end-684:end);
     laserScan = [laserScan(1,:) ; (laserScan(2,:) .* -1); (laserScan(3,:))]; % flip laser scanner data
     %plot(laserScan(1,:), laserScan(2,:), 'ro')
+    FilterLaserScanner();    
   end
 end
 
@@ -136,7 +139,7 @@ function DrawWall()
   GetPose();
   GetLaserScannerData();
   laserScan = [cos(neoPose.theta),-sin(neoPose.theta),0;sin(neoPose.theta),cos(neoPose.theta),0;0,0,1] * laserScan; % rotate laser scanner data (orientation)
-  if size(laserScan,2) > 684
+  if size(laserScan,2) > 684 % todo
    for i = 1:size(laserScan, 2)
     xW = neoPose.x + int64(mapZoom*laserScan(1, i));
     yW = neoPose.y + int64(mapZoom*laserScan(2, i));   
@@ -149,6 +152,22 @@ function DrawWall()
   image(RobotPathLayer);
 end
 
+function FilterLaserScanner()
+    % filtering the own contour of the robot from the laser scanner measurement
+    filteredLaser = [;]; 
+    for n = 1:size(laserScan, 2)
+        if ~(abs(laserScan(1,n)) < 0.3 & abs(laserScan(2,n)) < 0.3)
+            filteredLaser(1,n) = laserScan(1,n);
+            filteredLaser(2,n) = laserScan(2,n); 
+            filteredLaser(3,n) = laserScan(3,n);
+        else
+            filteredLaser(1,n) = NaN;
+            filteredLaser(2,n) = NaN; 
+            filteredLaser(3,n) = NaN;            
+        end
+    end
+    laserScan = filteredLaser;
+end
 
 end
 
