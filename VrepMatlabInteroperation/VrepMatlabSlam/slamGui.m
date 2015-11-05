@@ -12,7 +12,7 @@ StpButton = uicontrol('Style','pushbutton','String','Stop', 'Position',[315,130,
 RstButton = uicontrol('Style','pushbutton','String','Reset','Position',[315,100,70,25],'Callback',{@RstButton_Callback});
 TxtOri = uicontrol('Style','edit','String',num2str(neoOri), 'Position',[315, 70,70,25]);
 
-global ha peaks_data
+global RobotPathLayer laserScan xW yW neoPose
 
 ha = axes('Units','Pixels','Position',[50,60,200,185]); 
 align([FwdButton,BckButton,LftButton,RghButton,StpButton,RstButton,TxtOri],'Center','None');
@@ -20,7 +20,7 @@ align([FwdButton,BckButton,LftButton,RghButton,StpButton,RstButton,TxtOri],'Cent
 
 
 % Create the data to plot.
-mapSize = 500; % the size of the map
+mapSize = 640; % the size of the map
 mapZoom = 50;  % the zoom factor 
 WallLayer = zeros(mapSize,mapSize);
 EmptyLayer = zeros(mapSize,mapSize);
@@ -63,18 +63,19 @@ function BckButton_Callback(~,~)
 end
 
 function LftButton_Callback(~,~) 
-    GetLaserScannerData()
-    %SetWheelSpeed(-3,3);
+  SetWheelSpeed(-2,2);
+  DrawWall();
 end 
 
 function RghButton_Callback(~,~) 
   SetWheelSpeed(2,-2);
+  DrawWall();
 end 
 
 function StpButton_Callback(~,~) 
-  DrawWall();
-  DRawRobot();
   SetWheelSpeed(0,0);
+  DrawWall();
+  %DrawRobot();
 end
 
 function RstButton_Callback(~,~)
@@ -93,8 +94,8 @@ end
 function GetPose()
   [~,neoPos] = vrep.simxGetObjectPosition(clientID, sickHandle, origoHandle, vrep.simx_opmode_oneshot_wait);
   [~,neoOri] = vrep.simxGetObjectOrientation(clientID, neoHandle0, origoHandle, vrep.simx_opmode_oneshot_wait);
-  x = int64((neoPos(1)+10)*mapZoom); % convert neoPos to matrix element
-  y = int64((neoPos(2))*mapZoom); % convert neoPos to matrix element
+  x = int64((neoPos(1)+11)*mapZoom); % convert neoPos to matrix element
+  y = int64((neoPos(2)+1)*mapZoom); % convert neoPos to matrix element
   % convert neoOrientaion 
   if neoOri(1) < 0
     neoOri(2) = neoOri(2) * - 1 + pi/2; 
