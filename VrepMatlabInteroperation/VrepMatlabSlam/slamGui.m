@@ -12,7 +12,7 @@ StpButton = uicontrol('Style','pushbutton','String','Stop', 'Position',[315,130,
 RstButton = uicontrol('Style','pushbutton','String','Reset','Position',[315,100,70,25],'Callback',{@RstButton_Callback});
 TxtOri = uicontrol('Style','edit','String',num2str(neoOri), 'Position',[315, 70,70,25]);
 
-global RobotPathLayer laserScan xW yW neoPose
+global RobotPathLayer EmptyLayer WallLayer laserScan xW yW neoPose p
 
 ha = axes('Units','Pixels','Position',[50,60,200,185]); 
 align([FwdButton,BckButton,LftButton,RghButton,StpButton,RstButton,TxtOri],'Center','None');
@@ -27,6 +27,7 @@ EmptyLayer = zeros(mapSize,mapSize);
 RobotPathLayer = zeros(mapSize,mapSize);
 neoPose = struct('x', 0, 'y', 0, 'theta', 0); % contains the position and orientation of neobotix
 laserScan = 0;
+myColorMap = ([1, 1, 1; jet; zeros(35, 3)]); % the color map for display
 
 %% Initialize the GUI.
 % Change units to normalized so components resize automatically.
@@ -34,7 +35,7 @@ set([f,ha,FwdButton,BckButton,LftButton,RghButton,StpButton,RstButton,TxtOri],'U
 %Create a plot in the axes.
 image(WallLayer);
 % Assign the GUI a name to appear in the window title.
-set(f,'Name','slam gui')
+set(f,'Name','slam gui','NumberTitle','off')
 % Move the GUI to the center of the screen.
 movegui(f,'center')
 % Make the GUI visible.
@@ -52,43 +53,39 @@ end
 %% Push button callbacks
 
 function FwdButton_Callback(~,~) 
-  DrawRobot();
-  DrawWall();
   SetWheelSpeed(2,2);
 end
 
 function BckButton_Callback(~,~) 
-  image(RobotPathLayer); 
+  DrawAllLayer()
   SetWheelSpeed(-2,-2);
 end
 
-function LftButton_Callback(~,~) 
+function LftButton_Callback(~,~)
   SetWheelSpeed(-2,2);
-  DrawWall();
 end 
 
-function RghButton_Callback(~,~) 
+function RghButton_Callback(~,~)
   SetWheelSpeed(2,-2);
-  DrawWall();
 end 
 
-function StpButton_Callback(~,~) 
+function StpButton_Callback(~,~)
   SetWheelSpeed(0,0);
-  DrawWall();
-  %DrawRobot();
 end
 
 function RstButton_Callback(~,~)
   WallLayer = zeros(mapSize,mapSize);
   EmptyLayer = zeros(mapSize,mapSize);
   RobotPathLayer = zeros(mapSize,mapSize);
-  image(RobotPathLayer);
+  DrawAllLayer()
 end
 
 %% Nested functions
 function SetWheelSpeed(left, right)
+  DrawAllLayer()
   vrep.simxSetJointTargetVelocity(clientID, motorLeft, left, vrep.simx_opmode_oneshot_wait);
   vrep.simxSetJointTargetVelocity(clientID, motorRight, right, vrep.simx_opmode_oneshot_wait);
+  DrawAllLayer()
 end
 
 function GetPose()
@@ -123,7 +120,7 @@ function GetLaserScannerData()
   end
 end
 
-function DrawRobot()
+function AddRobotToLayer()
   GetPose();
   for n = 1:10
       xD = neoPose.x + int64(n*cos(neoPose.theta));
@@ -133,10 +130,9 @@ function DrawRobot()
       end
   end
   RobotPathLayer(neoPose.x,neoPose.y) = 100;
-  image(RobotPathLayer);
 end
 
-function DrawWall()
+function AddWallToLayer()
   GetPose();
   GetLaserScannerData();
   laserScan = [cos(neoPose.theta),-sin(neoPose.theta),0;sin(neoPose.theta),cos(neoPose.theta),0;0,0,1] * laserScan; % rotate laser scanner data (orientation)
@@ -145,12 +141,65 @@ function DrawWall()
     xW = neoPose.x + int64(mapZoom*laserScan(1, i));
     yW = neoPose.y + int64(mapZoom*laserScan(2, i));   
     if (xW < mapSize && yW < mapSize && xW > 0 && yW > 0) % if they fit into the map
-      RobotPathLayer(xW, yW) = 40;
+      WallLayer(xW, yW) = 40;
     end
     %laserScan(1,i)
    end
   end
-  image(RobotPathLayer);
+end
+
+function AddEmptyToLayer()
+  %GetPose();
+  %GetLaserScannerData();
+  if size(laserScan,2) > 684 % todo
+   for i = 1:size(laserScan, 2)
+    xW = neoPose.x + int64(mapZoom*laserScan(1, i));
+    yW = neoPose.y + int64(mapZoom*laserScan(2, i));
+    p = CalcLine(double(xW), double(yW), double(neoPose.x), double(neoPose.y)); 
+    for j = 1:size(p, 1)
+      if (p(j, 1) < mapSize && p(j, 2) < mapSize && p(j, 1) > 0 && p(j, 2) > 0) % if they fit into the map
+        EmptyLayer(p(j, 1), p(j, 2)) = 25;
+      end
+    end
+   end
+  end  
+end
+
+function points = CalcLine(x1, y1, x2, y2) % Calculates the laser beam lines
+    % bresenham algorithm
+    x1=round(x1); x2=round(x2);
+    y1=round(y1); y2=round(y2);
+    dx=abs(x2-x1);
+    dy=abs(y2-y1);
+    steep=abs(dy)>abs(dx);
+    if steep t=dx;dx=dy;dy=t; end
+    %The main algorithm goes here.
+    if dy==0 
+        q=zeros(dx+1,1);
+    else
+        q=[0;diff(mod([floor(dx/2):-dy:-dy*dx+floor(dx/2)]',dx))>=0];
+    end
+
+    %and ends here.
+    if steep
+        if y1<=y2 y=[y1:y2]'; else y=[y1:-1:y2]'; end
+        if x1<=x2 x=x1+cumsum(q);else x=x1-cumsum(q); end
+    else
+        if x1<=x2 x=[x1:x2]'; else x=[x1:-1:x2]'; end
+        if y1<=y2 y=y1+cumsum(q);else y=y1-cumsum(q); end
+    end
+    points = [x y];
+end
+
+function DrawAllLayer()
+    AddWallToLayer()      
+    AddRobotToLayer()  
+    AddEmptyToLayer()
+    colormap(myColorMap)
+    image(RobotPathLayer /3 + WallLayer * 1.5 + EmptyLayer);
+    h = zoom;
+    set(h,'Motion','both','Enable','on');
+    colorbar
 end
 
 function FilterLaserScanner()
