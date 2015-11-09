@@ -53,20 +53,19 @@ end
 %% Push button callbacks
 
 function FwdButton_Callback(~,~) 
-  SetWheelSpeed(2,2);
+  SetWheelSpeedToTarget(2,2,4);
 end
 
 function BckButton_Callback(~,~) 
-  DrawAllLayer()
-  SetWheelSpeed(-2,-2);
+  SetWheelSpeedToTarget(-2,-2, 8);
 end
 
 function LftButton_Callback(~,~)
-  SetWheelSpeed(-2,2);
+  SetWheelSpeedToTarget(-0.5,0.5,25);
 end 
 
 function RghButton_Callback(~,~)
-  SetWheelSpeed(2,-2);
+  SetWheelSpeedToTarget(0.5,-0.5,25);
 end 
 
 function StpButton_Callback(~,~)
@@ -85,7 +84,27 @@ function SetWheelSpeed(left, right)
   DrawAllLayer()
   vrep.simxSetJointTargetVelocity(clientID, motorLeft, left, vrep.simx_opmode_oneshot_wait);
   vrep.simxSetJointTargetVelocity(clientID, motorRight, right, vrep.simx_opmode_oneshot_wait);
-  DrawAllLayer()
+end
+
+function SetWheelSpeedToTarget(left, right, targetAngle)
+  SetWheelSpeed(left, right) % start the robot
+  i = 0;
+  pos = 0;
+  turns = 0;
+  maxIteration = 50;
+  %targetAngle = 8;
+  prevPos = [0 0]; % contains the actual (2) and the previous position of the wheel (1) 
+  while (abs(turns*pi*2+pos) < abs(targetAngle) && i < maxIteration) % the robot moves until it reaches the target
+       [~, pos] = vrep.simxGetJointPosition(clientID, motorRight, vrep.simx_opmode_oneshot_wait); 
+       i = i + 1;
+       prevPos(1) = prevPos(2);
+       prevPos(2) = pos;
+       if prevPos(1) > 0 && prevPos(2) < 0 % if the wheel reaches the  
+           turns = turns + 1;
+           DrawAllLayer()
+       end
+  end
+  SetWheelSpeed(0, 0) % stop the robot
 end
 
 function GetPose()
