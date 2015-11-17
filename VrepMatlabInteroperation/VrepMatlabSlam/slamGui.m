@@ -1,7 +1,9 @@
 function slamGui
 
 %  Create and then hide the GUI as it is being constructed.
-f = figure('Visible','off','Position',[360,500,450,285]);
+f = figure('Visible','off','Position',[360,500,450,285],'NumberTitle','off');
+% Make the GUI larger
+set(gcf, 'units','normalized','outerposition',[0 0 0.8 0.8]); 
 neoOri = 0;
 %  Construct the components.
 FwdButton = uicontrol('Style','pushbutton','String','Fwd',  'Position',[315,250,70,25],'Callback',{@FwdButton_Callback});
@@ -10,9 +12,10 @@ LftButton = uicontrol('Style','pushbutton','String','Left', 'Position',[315,190,
 RghButton = uicontrol('Style','pushbutton','String','Right','Position',[315,160,70,25],'Callback',{@RghButton_Callback});      
 StpButton = uicontrol('Style','pushbutton','String','Stop', 'Position',[315,130,70,25],'Callback',{@StpButton_Callback});
 RstButton = uicontrol('Style','pushbutton','String','Reset','Position',[315,100,70,25],'Callback',{@RstButton_Callback});
-TxtOri = uicontrol('Style','edit','String',num2str(neoOri), 'Position',[315, 70,70,25]);
+TxtOri = uicontrol('Style','edit','String',sprintf('\n'),   'Position',[315, 70,70,25],'Max', 4);
+ExtButton = uicontrol('Style','pushbutton','String','Exit', 'Position',[315, 50,70,15],'Callback',{@ExtButton_Callback});
 
-global RobotPathLayer EmptyLayer WallLayer laserScan xW yW neoPose p
+global RobotPathLayer EmptyLayer WallLayer laserScan xW yW neoPose p poseAndTimeUnitTest
 
 ha = axes('Units','Pixels','Position',[50,60,200,185]); 
 align([FwdButton,BckButton,LftButton,RghButton,StpButton,RstButton,TxtOri],'Center','None');
@@ -31,7 +34,7 @@ myColorMap = ([1, 1, 1; jet; zeros(35, 3)]); % the color map for display
 
 %% Initialize the GUI.
 % Change units to normalized so components resize automatically.
-set([f,ha,FwdButton,BckButton,LftButton,RghButton,StpButton,RstButton,TxtOri],'Units','normalized');
+set([f,ha,FwdButton,BckButton,LftButton,RghButton,StpButton,RstButton,TxtOri,ExtButton],'Units','normalized');
 %Create a plot in the axes.
 image(WallLayer);
 % Assign the GUI a name to appear in the window title.
@@ -50,6 +53,11 @@ end
 [~,sickHandle] = vrep.simxGetObjectHandle(clientID, 'SICK_S300_fast#0', vrep.simx_opmode_oneshot_wait);
 [~,neoHandle0] = vrep.simxGetObjectHandle(clientID, 'neobotix#0', vrep.simx_opmode_oneshot_wait);
 [~,origoHandle] = vrep.simxGetObjectHandle(clientID, 'origo', vrep.simx_opmode_oneshot_wait);
+% Initailize the timer
+tic
+% Initialize the main figure
+DrawAllLayer()
+
 %% Push button callbacks
 
 function FwdButton_Callback(~,~) 
@@ -79,6 +87,11 @@ function RstButton_Callback(~,~)
   DrawAllLayer()
 end
 
+function ExtButton_Callback(~,~)
+  disconnectVREP(vrep, clientID);
+  close(f);
+end
+
 %% Nested functions
 function SetWheelSpeed(left, right)
   DrawAllLayer()
@@ -102,6 +115,8 @@ function SetWheelSpeedToTarget(left, right, targetAngle)
        if prevPos(1) > 0 && prevPos(2) < 0 % if the wheel reaches the  
            turns = turns + 1;
            DrawAllLayer()
+           GetPose();
+           poseAndTimeUnitTest = [poseAndTimeUnitTest; neoPose.x,neoPose.y,neoPose.theta, currentTime];
        end
   end
   SetWheelSpeed(0, 0) % stop the robot
@@ -121,7 +136,8 @@ function GetPose()
   neoPose.x = x;
   neoPose.y = y;
   neoPose.theta = neoOri(2);
-  set(TxtOri, 'String', num2str(neoPose.theta));
+  currentTime = toc;
+  set(TxtOri, 'String', sprintf('x:%d\ny:%d\ntheta:%.3f\nTime:%.3f', x, y, neoPose.theta, currentTime));
 end
 
 function GetLaserScannerData()
@@ -208,12 +224,13 @@ function points = CalcLine(x1, y1, x2, y2) % Calculates the laser beam lines
         if y1<=y2 y=y1+cumsum(q);else y=y1-cumsum(q); end
     end
     points = [x y];
+    points = points(4:end, 1:end); % exclude the wall itself
 end
 
 function DrawAllLayer()
     AddWallToLayer()      
-    AddRobotToLayer()  
-    AddEmptyToLayer()
+    %AddRobotToLayer()  
+    %AddEmptyToLayer()
     colormap(myColorMap)
     image(RobotPathLayer /3 + WallLayer * 1.5 + EmptyLayer);
     h = zoom;
