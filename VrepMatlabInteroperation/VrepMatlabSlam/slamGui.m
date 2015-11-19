@@ -15,7 +15,7 @@ RstButton = uicontrol('Style','pushbutton','String','Reset','Position',[315,100,
 TxtOri = uicontrol('Style','edit','String',sprintf('\n'),   'Position',[315, 70,70,25],'Max', 4);
 ExtButton = uicontrol('Style','pushbutton','String','Exit', 'Position',[315, 50,70,15],'Callback',{@ExtButton_Callback});
 
-global RobotPathLayer EmptyLayer WallLayer laserScan xW yW neoPose p poseAndTimeUnitTest
+global RobotPathLayer WallLayer laserScan xW yW neoPose p poseAndTimeUnitTest neoPos
 
 ha = axes('Units','Pixels','Position',[50,60,200,185]); 
 align([FwdButton,BckButton,LftButton,RghButton,StpButton,RstButton,TxtOri],'Center','None');
@@ -25,12 +25,13 @@ align([FwdButton,BckButton,LftButton,RghButton,StpButton,RstButton,TxtOri],'Cent
 % Create the data to plot.
 mapSize = 640; % the size of the map
 mapZoom = 50;  % the zoom factor 
-WallLayer = zeros(mapSize,mapSize);
-EmptyLayer = zeros(mapSize,mapSize);
-RobotPathLayer = zeros(mapSize,mapSize);
+WallLayer = ones(mapSize,mapSize) / 2; % 0.5 probability by default
+%EmptyLayer = ones(mapSize,mapSize) / 2; % 0.5 probability by default
+RobotPathLayer = ones(mapSize,mapSize) / 2; % 0.5 probability by default
 neoPose = struct('x', 0, 'y', 0, 'theta', 0); % contains the position and orientation of neobotix
 laserScan = 0;
-myColorMap = ([1, 1, 1; jet; zeros(35, 3)]); % the color map for display
+myColorMap = ([autumn; ones(6,3); flipud(winter); zeros(1,3)]); % the color map for display
+probailityConstant = 0.95; % the constant of probability
 
 %% Initialize the GUI.
 % Change units to normalized so components resize automatically.
@@ -57,15 +58,18 @@ end
 tic
 % Initialize the main figure
 DrawAllLayer()
+SetWheelSpeed(0,0);
+currentTime = toc;
+poseAndTimeUnitTest = double([]);
 
 %% Push button callbacks
 
 function FwdButton_Callback(~,~) 
-  SetWheelSpeedToTarget(2,2,4);
+  SetWheelSpeedToTarget(2,2, 4);
 end
 
 function BckButton_Callback(~,~) 
-  SetWheelSpeedToTarget(-2,-2, 8);
+  SetWheelSpeedToTarget(-2,-2, 4);
 end
 
 function LftButton_Callback(~,~)
@@ -82,7 +86,7 @@ end
 
 function RstButton_Callback(~,~)
   WallLayer = zeros(mapSize,mapSize);
-  EmptyLayer = zeros(mapSize,mapSize);
+  %EmptyLayer = zeros(mapSize,mapSize);
   RobotPathLayer = zeros(mapSize,mapSize);
   DrawAllLayer()
 end
@@ -102,21 +106,24 @@ end
 function SetWheelSpeedToTarget(left, right, targetAngle)
   SetWheelSpeed(left, right) % start the robot
   i = 0;
-  pos = 0;
+  posMotor = 0;
   turns = 0;
-  maxIteration = 50;
+  maxIteration = 200;
   %targetAngle = 8;
   prevPos = [0 0]; % contains the actual (2) and the previous position of the wheel (1) 
-  while (abs(turns*pi*2+pos) < abs(targetAngle) && i < maxIteration) % the robot moves until it reaches the target
-       [~, pos] = vrep.simxGetJointPosition(clientID, motorRight, vrep.simx_opmode_oneshot_wait); 
+  while (abs(turns*pi*2+posMotor) < abs(targetAngle) && i < maxIteration) % the robot moves until it reaches the target
+       [~, posMotor] = vrep.simxGetJointPosition(clientID, motorRight, vrep.simx_opmode_oneshot_wait); 
        i = i + 1;
        prevPos(1) = prevPos(2);
-       prevPos(2) = pos;
+       prevPos(2) = posMotor;
+       if mod(i,10) == 0
+           GetPose();
+           currentTime = toc;
+           poseAndTimeUnitTest = [poseAndTimeUnitTest; double(neoPose.x), double(neoPose.y),neoPose.theta, double(neoPos(1)), double(neoPos(2)), currentTime];
+       end
        if prevPos(1) > 0 && prevPos(2) < 0 % if the wheel reaches the  
            turns = turns + 1;
            DrawAllLayer()
-           GetPose();
-           poseAndTimeUnitTest = [poseAndTimeUnitTest; neoPose.x,neoPose.y,neoPose.theta, currentTime];
        end
   end
   SetWheelSpeed(0, 0) % stop the robot
@@ -176,7 +183,7 @@ function AddWallToLayer()
     xW = neoPose.x + int64(mapZoom*laserScan(1, i));
     yW = neoPose.y + int64(mapZoom*laserScan(2, i));   
     if (xW < mapSize && yW < mapSize && xW > 0 && yW > 0) % if they fit into the map
-      WallLayer(xW, yW) = 40;
+      WallLayer(xW, yW) = 1-((1 - WallLayer(xW, yW)) * probailityConstant); % increase the probability
     end
     %laserScan(1,i)
    end
@@ -193,14 +200,14 @@ function AddEmptyToLayer()
     p = CalcLine(double(xW), double(yW), double(neoPose.x), double(neoPose.y)); 
     for j = 1:size(p, 1)
       if (p(j, 1) < mapSize && p(j, 2) < mapSize && p(j, 1) > 0 && p(j, 2) > 0) % if they fit into the map
-        EmptyLayer(p(j, 1), p(j, 2)) = 25;
+        WallLayer(p(j, 1), p(j, 2)) = (WallLayer(p(j, 1), p(j, 2))) * probailityConstant; % decrease the probability
       end
     end
    end
   end  
 end
 
-function points = CalcLine(x1, y1, x2, y2) % Calculates the laser beam lines
+function points = CalcLine(x1, y1, x2, y2) % Calculates the laser beam lines (empty area)
     % bresenham algorithm
     x1=round(x1); x2=round(x2);
     y1=round(y1); y2=round(y2);
@@ -224,18 +231,20 @@ function points = CalcLine(x1, y1, x2, y2) % Calculates the laser beam lines
         if y1<=y2 y=y1+cumsum(q);else y=y1-cumsum(q); end
     end
     points = [x y];
-    points = points(4:end, 1:end); % exclude the wall itself
+    points = points(2:end, 1:end); % exclude the wall itself from the empty area
 end
 
 function DrawAllLayer()
     AddWallToLayer()      
     %AddRobotToLayer()  
-    %AddEmptyToLayer()
+    AddEmptyToLayer()
     colormap(myColorMap)
-    image(RobotPathLayer /3 + WallLayer * 1.5 + EmptyLayer);
+    image(WallLayer,'CDataMapping','scaled');
     h = zoom;
     set(h,'Motion','both','Enable','on');
+    caxis([0,1])
     colorbar
+
 end
 
 function FilterLaserScanner()
