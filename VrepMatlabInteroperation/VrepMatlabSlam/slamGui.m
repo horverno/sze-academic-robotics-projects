@@ -285,7 +285,7 @@ function FilterLaserScanner()
     % filtering the own contour of the robot from the laser scanner measurement
     filteredLaser = [;]; 
     for n = 1:size(laserScan, 2)
-        if ~(abs(laserScan(1,n)) < 0.3 & abs(laserScan(2,n)) < 0.3)
+        if ~(abs(laserScan(1,n)) < 0.06 & abs(laserScan(2,n)) < 0.06)
             filteredLaser(1,n) = laserScan(1,n);
             filteredLaser(2,n) = laserScan(2,n); 
             filteredLaser(3,n) = laserScan(3,n);

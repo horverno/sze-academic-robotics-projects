@@ -11,5 +11,6 @@ function Layer = DrawWall(laserScan, x, y, theta, mapZoom, mapSize)
     %laserScan(1,i)
    end
   end
-
+  
 end
+
