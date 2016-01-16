@@ -1,8 +1,8 @@
 %% Laser scanner (sick s300) test loaded from file
 %%
-%if(exist('kinect3d01','var') == 0)
+if(exist('kinect3d01','var') == 0)
     load('vrepscene01.mat');
-%end
+end
 
 close all
 
@@ -51,18 +51,20 @@ subplot(1,3,2);
 hold on
 plot(scan(1,:),scan(2,:), 'b.')
 plot(filteredLaser(1,:),filteredLaser(2,:), 'k.')
-yT = atan2(scan(1,:),scan(2,:)); % yT are the measurement angles 
-yT = sort(yT); 
+laserAngles = atan2(scan(1,:),scan(2,:)); % the measurement angles 
+%laserAngles = sort(laserAngles);
+laserDistan = sqrt(scan(1,:).^2+scan(2,:).^2); % the measurement distances to the angles 
 %plot(sin(yT(:))*r, cos(yT(:))*r, 'r.')
-iYT = [];
+emptyAngles = []; % the empty area angles 
 ang2=-2.356:0.1:2.356;
 for i = 1:size(ang2,2)
-    values=yT(yT(:)>=ang2(i)-0.05 & yT(:)<=ang2(i)+0.05);
+    values=laserAngles(laserAngles(:)>=ang2(i)-0.05 & laserAngles(:)<=ang2(i)+0.05);
     if size(values) <= 1
-        iYT = [iYT, ang2(i)];
+        emptyAngles = [emptyAngles, ang2(i)];
     end
 end
-plot(sin(iYT(:))*r, cos(iYT(:))*r, 'r.') % the circle where was no measurement
+plot(sin(emptyAngles(:))*r, cos(emptyAngles(:))*r, 'r.') % the circle where was no measurement
+emptyDistan = ones(size(emptyAngles))*r ;% the distances to the angles 
 %plot(xp,yp, 'b.'); % the circle of maximum measurements
 axis square 
 pbaspect([1 1 1])
@@ -70,27 +72,23 @@ grid on
 
 %% Plot result
 % turn again with 180 degree (cathesian vs matrix representation)
-theta = pi/2;
-scan2 = [cos(theta),-sin(theta),0;sin(theta),cos(theta),0;0,0,1] * scan; % rotate laser scanner data (orientation)
+results = [laserDistan emptyDistan; laserAngles emptyAngles]; % first row distance; second angles
+results = sortrows(results.',2).';
 Layer = logical(false(200, 200));
 mapZoom = 50;
-  if size(scan2,2) > 684 % todo
-   for i = 1:size(scan2, 2)
-    xW = 100 + int64(mapZoom*scan2(1, i));
-    yW = 100 + int64(mapZoom*scan2(2, i));
-    if (xW < 200 && yW < 200 && xW > 0 && yW > 0) % if they fit into the map
-      Layer(xW, yW) = 1; % increase the probability
+xW = zeros(size(results, 2));
+yW = zeros(size(results, 2));
+for i = 1:size(results, 2)
+    xW(i) = 100 + int64(results(1, i) * mapZoom*sin(results(2, i)-pi/2));
+    yW(i) = 100 + int64(results(1, i) * mapZoom*cos(results(2, i)-pi/2));
+end
+for i = 1:size(results, 2)-1
+    Layer(xW(i), yW(i)) = 1; % increase the probability
+    c = CalcLine(xW(i+1), yW(i+1), xW(i), yW(i));
+    for j = 1:size(c, 1)-1
+        Layer(c(j,1), c(j,2)) = 1; % increase the probability
     end
-   end
-  end
-  for i = 1:size(iYT, 2)
-    xW = 100 + int64(mapZoom*sin(iYT(i)-pi/2)*r);
-    yW = 100 + int64(mapZoom*cos(iYT(i)-pi/2)*r);
-    if (xW < 200 && yW < 200 && xW > 0 && yW > 0) % if they fit into the map
-      Layer(xW, yW) = 1; % increase the probability
-    end
-   end
-  
+end
 
 subplot(1,3,3);
 colormap([zeros(1,3); ones(1,3)]);
