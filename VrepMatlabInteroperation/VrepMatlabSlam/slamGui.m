@@ -286,13 +286,9 @@ function FilterLaserScanner()
     filteredLaser = [;]; 
     for n = 1:size(laserScan, 2)
         if ~(abs(laserScan(1,n)) < 0.06 & abs(laserScan(2,n)) < 0.06)
-            filteredLaser(1,n) = laserScan(1,n);
-            filteredLaser(2,n) = laserScan(2,n); 
-            filteredLaser(3,n) = laserScan(3,n);
+            filteredLaser(:,n) = laserScan(:,n);
         else
-            filteredLaser(1,n) = NaN;
-            filteredLaser(2,n) = NaN; 
-            filteredLaser(3,n) = NaN;            
+            filteredLaser(:,n) = NaN;
         end
     end
     laserScan = filteredLaser;
