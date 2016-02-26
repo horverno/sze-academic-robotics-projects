@@ -6,7 +6,7 @@ end
 
 close all
 
-scan = sick3d01;
+scan = sick3d02;
 theta = pi/2;
 scan = [cos(theta),-sin(theta),0;sin(theta),cos(theta),0;0,0,1] * scan; % rotate laser scanner data (orientation)
 
@@ -50,21 +50,27 @@ grid on
 % turn again with 180 degree (cathesian vs matrix representation)
 results = [laserDistan emptyDistan; laserAngles emptyAngles]; % first row distance; second angles
 results = sortrows(results.',2).'; % sort because continuous connecting
-mapZoom = 50;
-mapCent = mapZoom * 2; % center x and y of the map
-mapSize = mapZoom * 4; % verical and horizontal size of the map
-Layer = logical(false(mapZoom*4, mapZoom*4));
+mapZoom = 100;
+mapCent = (mapZoom+1)*r*1.2; % center x and y of the map
+mapSize = (mapZoom+1)*2*r*1.2; % verical and horizontal size of the map
+Layer = logical(false(int32(mapSize), int32(mapSize)));
 xW = zeros(1, size(results, 2));
 yW = zeros(1, size(results, 2));
 for i = 1:size(results, 2)
-    xW(1, i) = mapCent + int32(results(1, i) * mapZoom*sin(results(2, i)-pi/2));
-    yW(1, i) = mapCent + int32(results(1, i) * mapZoom*cos(results(2, i)-pi/2));
+    xW(1, i) = int32(mapCent + results(1, i) * mapZoom*sin(results(2, i) - pi/2));
+    yW(1, i) = int32(mapCent + results(1, i) * mapZoom*cos(results(2, i) - pi/2));
 end
 for i = 1:size(results, 2)-1
+    try
     Layer(xW(1, i), yW(1, i)) = 1; % increase the probability (the actulal measurement dots)
+    catch
+    end
     c = CalcLine(xW(i+1), yW(i+1), xW(i), yW(i));
     for j = 1:size(c, 1)
+        try
         Layer(c(j,1), c(j,2)) = 1; % increase the probability (lines between dots)
+        catch
+        end
     end
 end
 
@@ -74,13 +80,9 @@ for j = 1:size(c, 1)
 end
 
 subplot(1,2,2);
+Layer = imfill(Layer, 'holes'); % imfill - fill image holes
 cmap = flag;
 colormap(cmap(1:8,1:3));
-%Layer = imfill(Layer,[51 50], 4); % fill the empty areas 
-TempLayer = int16(zeros(mapSize,mapSize,3));
-TempLayer(:,:,1)=int16((Layer-1*-1)*50);
-FillResult = FloodFill(TempLayer,[int32(mapCent); int32(mapCent)],2); % flood fill (image, from where, tolerance)
-Layer(FillResult) = 1;
 image(Layer);
 axis square 
 pbaspect([1 1 1])
