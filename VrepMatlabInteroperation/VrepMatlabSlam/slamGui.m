@@ -66,6 +66,7 @@ tic
 DrawAllLayer()
 SetWheelSpeed(0,0);
 currentTime = toc;
+GetPose();
 poseAndTimeUnitTest = double([]);
 calcPosex = neoPos(1);
 calcPosey = neoPos(2);
@@ -179,8 +180,8 @@ function GetLaserScannerData()
     laserScan = laserScan(:,end-684:end);
     laserScan = [laserScan(1,:) ; (laserScan(2,:) .* -1); (laserScan(3,:))]; % flip laser scanner data
     %plot(laserScan(1,:), laserScan(2,:), 'ro')
-    FilterLaserScanner();    
   end
+  FilterLaserScanner(); 
 end
 
 function AddRobotToLayer()
@@ -196,36 +197,38 @@ function AddRobotToLayer()
 end
 
 function AddWallToLayer()
-  GetPose();
-  GetLaserScannerData();
-  laserScan = [cos(neoPose.theta),-sin(neoPose.theta),0;sin(neoPose.theta),cos(neoPose.theta),0;0,0,1] * laserScan; % rotate laser scanner data (orientation)
   if size(laserScan,2) > 684 % todo
    for i = 1:size(laserScan, 2)
     xW = neoPose.x + int64(mapZoom*laserScan(1, i));
     yW = neoPose.y + int64(mapZoom*laserScan(2, i));   
     if (xW < mapSize && yW < mapSize && xW > 0 && yW > 0) % if they fit into the map
       WallLayer(xW, yW) = 1-((1 - WallLayer(xW, yW)) * probailityConstant); % increase the probability
+      WallLayer(xW+1, yW+1) = 1-((1 - WallLayer(xW, yW)) * probailityConstant); % increase the probability
+      WallLayer(xW-1, yW-1) = 1-((1 - WallLayer(xW, yW)) * probailityConstant); % increase the probability
+      WallLayer(xW-1, yW+1) = 1-((1 - WallLayer(xW, yW)) * probailityConstant); % increase the probability
+      WallLayer(xW+1, yW-1) = 1-((1 - WallLayer(xW, yW)) * probailityConstant); % increase the probability
     end
-    %laserScan(1,i)
    end
   end
 end
 
 function AddEmptyToLayer()
-  %GetPose();
-  %GetLaserScannerData();
-  if size(laserScan,2) > 684 % todo
-   for i = 1:size(laserScan, 2)
-    xW = neoPose.x + int64(mapZoom*laserScan(1, i));
-    yW = neoPose.y + int64(mapZoom*laserScan(2, i));
-    p = CalcLine(double(xW), double(yW), double(neoPose.x), double(neoPose.y)); 
-    for j = 1:size(p, 1)
-      if (p(j, 1) < mapSize && p(j, 2) < mapSize && p(j, 1) > 0 && p(j, 2) > 0) % if they fit into the map
-        WallLayer(p(j, 1), p(j, 2)) = (WallLayer(p(j, 1), p(j, 2))) * probailityConstant; % decrease the probability
-      end
+    GetPose();
+    a = emptyLaser(laserScan, neoPose.theta, mapZoom, probailityConstant, 0);
+    [rowsBig, columnsBig] = size(WallLayer);
+    [rowsSmall, columnsSmall] = size(a);
+    % Specify upper left row, column of where
+    % we'd like to paste the small matrix.
+    row1 = neoPose.x/5;
+    column1 = neoPose.y/5;
+    % Determine lower right location.
+    row2 = row1 + rowsSmall - 1
+    column2 = column1 + columnsSmall - 1
+    % See if it will fit.
+    if row2 <= rowsBig
+        % It will fit, so paste it.
+        WallLayer(row1:row2, column1:column2) = WallLayer(row1:row2, column1:column2) .* a;
     end
-   end
-  end  
 end
 
 function points = CalcLine(x1, y1, x2, y2) % Calculates the laser beam lines (empty area)
@@ -260,7 +263,10 @@ function DrawAllLayer()
     chkLayer(1) = get(ChkBoxWall,'Value');
     chkLayer(2) = get(ChkBoxEmpt,'Value');
     chkLayer(3) = get(ChkBoxPth1,'Value');
-    chkLayer(4) = get(ChkBoxPth2,'Value');    
+    chkLayer(4) = get(ChkBoxPth2,'Value');
+    GetPose();
+    GetLaserScannerData();
+    laserScan = [cos(neoPose.theta),-sin(neoPose.theta),0;sin(neoPose.theta),cos(neoPose.theta),0;0,0,1] * laserScan; % rotate laser scanner data (orientation)
     if chkLayer(1)
         AddWallToLayer()
     end
@@ -282,16 +288,16 @@ function DrawAllLayer()
 end
 
 function FilterLaserScanner()
-    % filtering the own contour of the robot from the laser scanner measurement
-    filteredLaser = [;]; 
+    % filtering the own contour of the robot from the laser scanner measurement (if not inside the 0.3 radius circle) 
+    filteredLaser = NaN(size(laserScan)); 
+    i = 0;
     for n = 1:size(laserScan, 2)
-        if ~(abs(laserScan(1,n)) < 0.06 & abs(laserScan(2,n)) < 0.06)
-            filteredLaser(:,n) = laserScan(:,n);
-        else
-            filteredLaser(:,n) = NaN;
+        if (sqrt(laserScan(1,n)^2 + laserScan(2,n)^2) > 0.3)
+            i = i + 1;
+            filteredLaser(:,i) = laserScan(:,n);
         end
     end
-    laserScan = filteredLaser;
+    laserScan = filteredLaser; % todo filteredLaser(:,1:i); jobb lenne, csak akkor 685-re kell figyelni
 end
 
 end
