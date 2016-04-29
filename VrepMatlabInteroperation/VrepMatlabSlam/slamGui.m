@@ -70,7 +70,9 @@ GetPose();
 poseAndTimeUnitTest = double([]);
 calcPosex = neoPos(1);
 calcPosey = neoPos(2);
-
+% Set the checkboxes to checked
+set(ChkBoxWall ,'Value',1);
+set(ChkBoxEmpt ,'Value',1);
 
 %% Push button and checkbox callbacks
 
@@ -264,6 +266,7 @@ function DrawAllLayer()
     chkLayer(2) = get(ChkBoxEmpt,'Value');
     chkLayer(3) = get(ChkBoxPth1,'Value');
     chkLayer(4) = get(ChkBoxPth2,'Value');
+    set(TxtOri, 'String', sprintf('x:%d\n y:%d\n theta:%.3f\n', neoPose.x, neoPose.y, neoPose.theta));
     GetPose();
     GetLaserScannerData();
     laserScan = [cos(neoPose.theta),-sin(neoPose.theta),0;sin(neoPose.theta),cos(neoPose.theta),0;0,0,1] * laserScan; % rotate laser scanner data (orientation)

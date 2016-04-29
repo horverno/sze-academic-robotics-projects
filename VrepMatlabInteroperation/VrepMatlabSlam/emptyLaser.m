@@ -1,19 +1,19 @@
 function [EmptyArea] = emptyLaser(scan, theta, mapZoom, probailityConstant, disp)
 %% Empty areas
+% test: emptyLaser(laserScan, neoPose.theta, 50, 500, 1)
+% scan = laserScan(:,~isnan(laserScan(1,:))); theta = pi/8; mapZoom = 20; probailityConstant =0.45; disp = 1; 
 
-%scan = laserScan(:,~isnan(laserScan(1,:))); theta = pi/8; mapZoom = 20; probailityConstant =0.45; disp = 1; 
-
-
+%scan = [3.7473595 3.7587819;0.93013006 0.90543997;0.11699983 0.11699983];
 r = 3; % circle of maximum measurement
 
-scan = [cos(theta),-sin(theta),0;sin(theta),cos(theta),0;0,0,1] * scan; % rotate laser scanner data (orientation)
+scan = [cos(-pi/2),-sin(-pi/2),0;sin(-pi/2),cos(-pi/2),0;0,0,1] * scan; % rotate laser scanner data (orientation)
 
-
-laserAngles = mod(atan2(scan(1,:),scan(2,:)), 2*pi); % the measurement angles
+theta = mod(theta , 2*pi);
+laserAngles = mod(atan2(scan(1,:),scan(2,:)), 2*pi); % the measurement angles, wrap to 2pi
 laserDistan = sqrt(scan(1,:).^2+scan(2,:).^2); % the measurement distances to the angles
 emptyAngles = []; % the empty area angles
 allAngles = -2.356 : 0.1 : 2.356;
-allAngles = mod(allAngles - theta, 2*pi); % wrap to pi
+allAngles = mod(allAngles - theta, 2*pi); % wrap to 2pi
 for i = 1:size(allAngles,2)
     values=laserAngles(laserAngles(:)>=allAngles(i)-0.05 & laserAngles(:)<=allAngles(i)+0.05);
     if size(values) <= 1
