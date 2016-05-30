@@ -2,6 +2,8 @@
 %% Connect to V-REP (if not already connected)
 if(exist('vrep','var') == 0)
     [vrep, clientID] = connectVREP('127.0.0.1',19997);
+    % First read LIDAR in streaming mode (second buffer)
+    [~,~]=vrep.simxReadStringStream(clientID,'measuredDataAtThisTime0', vrep.simx_opmode_streaming);
 end
 
 %% Settings
@@ -12,29 +14,44 @@ Data = [];
 neoEndTheta = pi / 2;
 
 %% Generate measurement poses and display them
-MaxAngleOfView = pi / 2 * 3;
 AngleNumber = 6;
+MaxAngleOfView = pi / 2 * 3;
 
+RingNumber = 2;
 FirstRing = 1.5;
-LastRing = 4.5; % 4 is the laser scanner measurement distance minust the vehicle
-RingNumber = 6;
+LastRing = 4.5; % 4.5 is the laser scanner measurement distance minus the vehicle itself
 
-OrinetationNumber = 1;
-HeightNumber = 1;
+HeightNumber = 2;
+HeightDistance = 0.2; % The absolute Z axis distance up and down 
+
+OrinetationNumber = 3;
+MaxAngleOfOrinetation = pi / 32;
 
 NumberOfMeasurement = AngleNumber * RingNumber * OrinetationNumber * HeightNumber;
-Distances = linspace(FirstRing, LastRing, RingNumber);
 Angles = linspace(-1 * MaxAngleOfView / 2, MaxAngleOfView / 2, AngleNumber);
-MeasurementPoints = zeros(2, RingNumber * AngleNumber);
+Distances = linspace(FirstRing, LastRing, RingNumber);
+Heights = linspace(-HeightDistance/2, HeightDistance/2, HeightNumber);
+Orinetations = linspace(-1 * MaxAngleOfOrinetation / 2, MaxAngleOfOrinetation / 2, OrinetationNumber);
 
-k = 1;
+MeasurementPoints = zeros(4, RingNumber * AngleNumber * HeightNumber * OrinetationNumber); 
+disp(strcat('Number of iteration is:  ', num2str(size(MeasurementPoints, 2))));
+x = 1;
 for i = 1:RingNumber
-for j = 1:AngleNumber
-    MeasurementPoints(1, k) = sin(Angles(j)) * Distances(i);
-    MeasurementPoints(2, k) = cos(Angles(j)) * Distances(i);
-    k = k + 1;
+    for j = 1:AngleNumber
+        for k = 1:HeightNumber
+            for l = 1:OrinetationNumber
+                MeasurementPoints(1, x) = sin(Angles(j)) * Distances(i); % x
+                MeasurementPoints(2, x) = cos(Angles(j)) * Distances(i); % y
+                MeasurementPoints(3, x) = Heights(k); % z
+                MeasurementPoints(4, x) = Orinetations(l); % orientation
+                x = x + 1;
+            end
+        end
+    end
 end
-end
+% Debug
+% MeasurementPoints = [-4 1.2 -1 -3; -4 1.5 0 4];
+% NumberOfMeasurement = size(MeasurementPoints, 2);
 plot(MeasurementPoints(1, :), MeasurementPoints(2, :), '*');
 
 
@@ -63,16 +80,18 @@ if str == 'y'
     Db(1).Noise = logical(false);
     Db(2:NumberOfMeasurement) = Db(1);
     
-    for k = 1:size(MeasurementPoints, 2) % or AngleNumber * RingNumber
-        vrep.simxSetObjectPosition(clientID, SzenergyCar, -1, [MeasurementPoints(1, k) + SickPos(1) MeasurementPoints(2, k) + SickPos(2) SickPos(3)],vrep.simx_opmode_oneshot_wait);
+    for x = 1:size(MeasurementPoints, 2) % or ingNumber * AngleNumber * OrinetationNumber * HeightNumber
+        vrep.simxSetObjectPosition(clientID, SzenergyCar, -1, [MeasurementPoints(1, x) + SickPos(1) MeasurementPoints(2, x) + SickPos(2) MeasurementPoints(3, x) + SickPos(3)],vrep.simx_opmode_oneshot_wait);
+        vrep.simxSetObjectOrientation(clientID, SzenergyCar, -1, [SzenergyOri(1) SzenergyOri(2) + MeasurementPoints(4, x) SzenergyOri(3)],vrep.simx_opmode_oneshot_wait);
         Res = 19;
-        %for i = 1:2 % tow times because of streaming operational mode % todo
-            while (Res~=vrep.simx_return_ok)
-                [Res,Data]=vrep.simxReadStringStream(clientID,'measuredDataAtThisTime0', vrep.simx_opmode_streaming);
-            end
-        %end
+        pause(1);
+        % Read LIDAR in buffer opmode (after the first call which sould be streaming)
+        [Res,Data]=vrep.simxReadStringStream(clientID,'measuredDataAtThisTime0', vrep.simx_opmode_buffer );
+        if (Res ~= vrep.simx_return_ok)
+            disp('ReadStringStream returned error.');
+        end
         if isempty(Data)
-            disp('No LIDAR measurement in the simxReadStringStream. Is your simulation running?');
+            disp('No LIDAR measurement in the simxReadStringStream.');
         else
             Data = vrep.simxUnpackFloats(Data);
             Data = reshape(Data,3,size(Data,2)/3);
@@ -82,28 +101,25 @@ if str == 'y'
             Data = Data(1:2,:); % only the x and y positions are needed
             Data = [Data(1, :); Data(2, :) * -1]; % flip according y (todo: don't understand why it is fliped at the first place)
             Data = [cos(neoEndTheta(1)),-sin(neoEndTheta(1));sin(neoEndTheta(1)),cos(neoEndTheta(1))]*Data;
-            Db(k).Meas = Data;
-            Db(k).RelPos.X = MeasurementPoints(1, k);
-            Db(k).RelPos.Y = MeasurementPoints(2, k);
-
+            Db(x).Meas = Data;
+            Db(x).RelPos.X = MeasurementPoints(1, x);
+            Db(x).RelPos.Y = MeasurementPoints(2, x);
+            Db(x).RelPos.Z = MeasurementPoints(3, x);
+            Db(x).RelOri.Alpha = MeasurementPoints(4, x);
         end
     end
     
 end
 
-%% Ask if display
-str = input('Display data? y/n (empty means no): ', 's');
-if isempty(str)
-    str = 'n';
-end
+%% Display
 
 if str == 'y'
     fig1 = figure('Name', 'Laser scanner', 'units','normalized','position',[.1 .1 .4 .4], 'Color',[1 1 1], 'outerposition',[0 0 1 1]);
-    for k = 1:size(Db,2)
+    for x = 1:size(Db,2)
         Color  = rand(1,3);
         hold on
-        plot(Db(k).Meas(1,:), Db(k).Meas(2,:), '-o', 'Color', Color/4, 'MarkerFaceColor', Color, 'MarkerEdgeColor', Color, 'MarkerSize', 10, 'LineSmoothing','on')
-        plot(Db(k).RelPos.X , Db(k).RelPos.Y, 'o', 'MarkerFaceColor', Color, 'MarkerEdgeColor', Color, 'MarkerSize', 20, 'LineSmoothing','on');
+        plot(Db(x).Meas(1,:), Db(x).Meas(2,:), '-o', 'Color', Color/4, 'MarkerFaceColor', Color, 'MarkerEdgeColor', Color, 'MarkerSize', 10, 'LineSmoothing','on')
+        plot(Db(x).RelPos.X , Db(x).RelPos.Y, 'o', 'MarkerFaceColor', Color, 'MarkerEdgeColor', Color, 'MarkerSize', 20, 'LineSmoothing','on');
         pause(1);
     end
 end
