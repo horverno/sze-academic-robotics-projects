@@ -11,13 +11,16 @@ BckButton = uicontrol('Style','pushbutton','String','Bck',  'Position',[315,220,
 LftButton = uicontrol('Style','pushbutton','String','Left', 'Position',[315,190,70,25],'Callback',{@LftButton_Callback});
 RghButton = uicontrol('Style','pushbutton','String','Right','Position',[315,160,70,25],'Callback',{@RghButton_Callback});      
 StpButton = uicontrol('Style','pushbutton','String','Stop', 'Position',[315,130,70,25],'Callback',{@StpButton_Callback});
-RstButton = uicontrol('Style','pushbutton','String','Reset','Position',[315,100,70,25],'Callback',{@RstButton_Callback});
+RstButton = uicontrol('Style','pushbutton','String','Reset','Position',[315,100,20,25],'Callback',{@RstButton_Callback});
+UndButton = uicontrol('Style','pushbutton','String','Undo', 'Position',[365,100,20,25],'Callback',{@UndButton_Callback});
 TxtOri = uicontrol('Style','edit','String',sprintf('\n'),   'Position',[315, 70,70,25],'Max', 4);
 ExtButton = uicontrol('Style','pushbutton','String','Exit', 'Position',[315, 50,70,15],'Callback',{@ExtButton_Callback});
 ChkBoxWall = uicontrol('Style','checkbox','String','Wall',  'Position',[315, 25,15,15],'Callback',{@CheckBox_Callback});
 ChkBoxEmpt = uicontrol('Style','checkbox','String','Empty', 'Position',[330, 25,15,15],'Callback',{@CheckBox_Callback});
 ChkBoxPth1 = uicontrol('Style','checkbox','String','Path1', 'Position',[345, 25,15,15],'Callback',{@CheckBox_Callback});
 ChkBoxPth2 = uicontrol('Style','checkbox','String','Path2', 'Position',[360, 25,15,15],'Callback',{@CheckBox_Callback});
+ChkBoxDebu = uicontrol('Style','checkbox','String','D',     'Position',[375, 25,15,15],'Callback',{@CheckBox_Callback});
+
 
 global RobotPath1Layer RobotPath2Layer WallLayer laserScan xW yW neoPose p poseAndTimeUnitTest neoPos calcPosex calcPosey dT chkLayer
 
@@ -30,6 +33,7 @@ align([FwdButton,BckButton,LftButton,RghButton,StpButton,RstButton,TxtOri],'Cent
 mapSize = 640; % the size of the map
 mapZoom = 50;  % the zoom factor 
 WallLayer = ones(mapSize,mapSize) / 2; % 0.5 probability by default
+PrevLayer = ones(mapSize,mapSize);
 RobotPath1Layer = ones(mapSize,mapSize) / 2; % 0.5 probability by default
 RobotPath2Layer = ones(mapSize,mapSize) / 2; % 0.5 probability by default
 neoPose = struct('x', 0, 'y', 0, 'theta', 0); % contains the position and orientation of neobotix
@@ -41,7 +45,7 @@ chkLayer = [true(1) true(1) false(1) false(1)]; % Wall Empty Path1 Path2 layers
 
 %% Initialize the GUI.
 % Change units to normalized so components resize automatically.
-set([f,ha,FwdButton,BckButton,LftButton,RghButton,StpButton,RstButton,TxtOri,ExtButton,ChkBoxPth1,ChkBoxPth2,ChkBoxWall,ChkBoxEmpt],'Units','normalized');
+set([f,ha,FwdButton,BckButton,LftButton,RghButton,StpButton,RstButton,UndButton,TxtOri,ExtButton,ChkBoxPth1,ChkBoxPth2,ChkBoxWall,ChkBoxEmpt,ChkBoxDebu],'Units','normalized');
 %Create a plot in the axes.
 image(WallLayer);
 % Assign the GUI a name to appear in the window title.
@@ -66,10 +70,13 @@ tic
 DrawAllLayer()
 SetWheelSpeed(0,0);
 currentTime = toc;
+GetPose();
 poseAndTimeUnitTest = double([]);
 calcPosex = neoPos(1);
 calcPosey = neoPos(2);
-
+% Set the checkboxes to checked
+set(ChkBoxWall ,'Value',1);
+set(ChkBoxEmpt ,'Value',1);
 
 %% Push button and checkbox callbacks
 
@@ -97,6 +104,14 @@ function RstButton_Callback(~,~)
   WallLayer = ones(mapSize,mapSize) / 2; % 0.5 probability by default
   RobotPath1Layer = ones(mapSize,mapSize) / 2; % 0.5 probability by default
   DrawAllLayer()
+end
+
+function UndButton_Callback(~,~)
+  WallLayer = PrevLayer;
+  colormap(myColorMap1)  
+  image(WallLayer,'CDataMapping','scaled');
+  colorbar
+  caxis([0,1])
 end
 
 function ExtButton_Callback(~,~)
@@ -179,8 +194,8 @@ function GetLaserScannerData()
     laserScan = laserScan(:,end-684:end);
     laserScan = [laserScan(1,:) ; (laserScan(2,:) .* -1); (laserScan(3,:))]; % flip laser scanner data
     %plot(laserScan(1,:), laserScan(2,:), 'ro')
-    FilterLaserScanner();    
   end
+  FilterLaserScanner(); 
 end
 
 function AddRobotToLayer()
@@ -196,36 +211,60 @@ function AddRobotToLayer()
 end
 
 function AddWallToLayer()
-  GetPose();
-  GetLaserScannerData();
-  laserScan = [cos(neoPose.theta),-sin(neoPose.theta),0;sin(neoPose.theta),cos(neoPose.theta),0;0,0,1] * laserScan; % rotate laser scanner data (orientation)
   if size(laserScan,2) > 684 % todo
    for i = 1:size(laserScan, 2)
     xW = neoPose.x + int64(mapZoom*laserScan(1, i));
     yW = neoPose.y + int64(mapZoom*laserScan(2, i));   
     if (xW < mapSize && yW < mapSize && xW > 0 && yW > 0) % if they fit into the map
       WallLayer(xW, yW) = 1-((1 - WallLayer(xW, yW)) * probailityConstant); % increase the probability
+      WallLayer(xW+1, yW+1) = 1-((1 - WallLayer(xW, yW)) * probailityConstant); % increase the probability
+      WallLayer(xW-1, yW-1) = 1-((1 - WallLayer(xW, yW)) * probailityConstant); % increase the probability
+      WallLayer(xW-1, yW+1) = 1-((1 - WallLayer(xW, yW)) * probailityConstant); % increase the probability
+      WallLayer(xW+1, yW-1) = 1-((1 - WallLayer(xW, yW)) * probailityConstant); % increase the probability
     end
-    %laserScan(1,i)
    end
   end
 end
 
 function AddEmptyToLayer()
-  %GetPose();
-  %GetLaserScannerData();
-  if size(laserScan,2) > 684 % todo
-   for i = 1:size(laserScan, 2)
-    xW = neoPose.x + int64(mapZoom*laserScan(1, i));
-    yW = neoPose.y + int64(mapZoom*laserScan(2, i));
-    p = CalcLine(double(xW), double(yW), double(neoPose.x), double(neoPose.y)); 
-    for j = 1:size(p, 1)
-      if (p(j, 1) < mapSize && p(j, 2) < mapSize && p(j, 1) > 0 && p(j, 2) > 0) % if they fit into the map
-        WallLayer(p(j, 1), p(j, 2)) = (WallLayer(p(j, 1), p(j, 2))) * probailityConstant; % decrease the probability
-      end
+    GetPose();
+    if get(ChkBoxDebu,'Value') == 0
+        a = emptyLaser(laserScan, neoPose.theta, mapZoom, probailityConstant, 0);
+    else
+        a = emptyLaser(laserScan, neoPose.theta, mapZoom, probailityConstant, 1);
     end
-   end
-  end  
+    [rowsBig, columnsBig] = size(WallLayer); % mapSize
+    [rowsSmall, columnsSmall] = size(a)
+    % Specify upper left row, column of where
+    % we'd like to paste the small matrix.
+    row1 = neoPose.x- ((mapZoom+1)*4*1.6) % todo
+    column1 = neoPose.y - ((mapZoom+1)*4*1.6)
+    % Determine lower right location.
+    row2 = row1 + rowsSmall - 1
+    column2 = column1 + columnsSmall - 1
+    if row1 <= 1
+        a = a(-row1+2:end, :);
+        row1 = 1
+    end
+    if column1 <= 1
+        a = a(:, -column1+2:end);
+        column1 = 1
+    end
+    % If row is out from the map
+    if row2 >= mapSize
+        row2 = mapSize
+        a = a(1:mapSize - row1 + 1, :);
+    end
+    % If column is out from the map
+    if column2 >= mapSize
+        column2 = mapSize
+        a = a(:, 1:mapSize - column1 + 1);
+    end
+    % See if it will fit.
+    if row2 <= rowsBig
+        % It will fit, so paste it.
+        WallLayer(row1:row2, column1:column2) = WallLayer(row1:row2, column1:column2) .* a;
+    end
 end
 
 function points = CalcLine(x1, y1, x2, y2) % Calculates the laser beam lines (empty area)
@@ -260,7 +299,12 @@ function DrawAllLayer()
     chkLayer(1) = get(ChkBoxWall,'Value');
     chkLayer(2) = get(ChkBoxEmpt,'Value');
     chkLayer(3) = get(ChkBoxPth1,'Value');
-    chkLayer(4) = get(ChkBoxPth2,'Value');    
+    chkLayer(4) = get(ChkBoxPth2,'Value');
+    set(TxtOri, 'String', sprintf('x:%d\n y:%d\n theta:%.3f\n', neoPose.x, neoPose.y, neoPose.theta));
+    GetPose();
+    GetLaserScannerData();
+    laserScan = [cos(neoPose.theta),-sin(neoPose.theta),0;sin(neoPose.theta),cos(neoPose.theta),0;0,0,1] * laserScan; % rotate laser scanner data (orientation)
+    PrevLayer = WallLayer;
     if chkLayer(1)
         AddWallToLayer()
     end
@@ -282,16 +326,16 @@ function DrawAllLayer()
 end
 
 function FilterLaserScanner()
-    % filtering the own contour of the robot from the laser scanner measurement
-    filteredLaser = [;]; 
+    % filtering the own contour of the robot from the laser scanner measurement (if not inside the 0.3 radius circle) 
+    filteredLaser = NaN(size(laserScan)); 
+    i = 0;
     for n = 1:size(laserScan, 2)
-        if ~(abs(laserScan(1,n)) < 0.06 & abs(laserScan(2,n)) < 0.06)
-            filteredLaser(:,n) = laserScan(:,n);
-        else
-            filteredLaser(:,n) = NaN;
+        if (sqrt(laserScan(1,n)^2 + laserScan(2,n)^2) > 0.3)
+            i = i + 1;
+            filteredLaser(:,i) = laserScan(:,n);
         end
     end
-    laserScan = filteredLaser;
+    laserScan = filteredLaser; % todo filteredLaser(:,1:i); jobb lenne, csak akkor 685-re kell figyelni
 end
 
 end
