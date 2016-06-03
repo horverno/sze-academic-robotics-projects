@@ -15,10 +15,10 @@ neoEndTheta = pi / 2;
 
 %% Generate measurement poses and display them
 AngleNumber = 6;
-MaxAngleOfView = pi / 2 * 3;
+MaxAngleOfView = pi / 5 * 6;
 
 RingNumber = 2;
-FirstRing = 1.5;
+FirstRing = 1.8;
 LastRing = 4.5; % 4.5 is the laser scanner measurement distance minus the vehicle itself
 
 HeightNumber = 2;
@@ -56,7 +56,7 @@ plot(MeasurementPoints(1, :), MeasurementPoints(2, :), '*');
 
 
 %% Ask if generated measurement poses applied to V-REP or not
-str = input('Get data from V-REP? y/n (empty means no): ', 's');
+str = input('Get data from V-REP and display randomly selected few of them? y/n (empty means no): ', 's');
 if isempty(str)
     str = 'n';
 end
@@ -74,12 +74,14 @@ if str == 'y'
     [~, SzenergyPos] = vrep.simxGetObjectPosition(clientID,SzenergyCar,-1,vrep.simx_opmode_oneshot_wait);
     [~, SzenergyOri] = vrep.simxGetObjectOrientation(clientID,SzenergyCar,-1,vrep.simx_opmode_oneshot_wait);
     
+    % Creating the database variable
     Db(1).Meas = zeros(2,4);
     Db(1).RelPos = struct('X', 0, 'Y', 0, 'Z', 0);
     Db(1).RelOri = struct('Alpha', 0, 'Beta', 0, 'Gamma', 0);
     Db(1).Noise = logical(false);
     Db(2:NumberOfMeasurement) = Db(1);
     
+    % Applying the generated measurement poses and save it to the database variable
     for x = 1:size(MeasurementPoints, 2) % or ingNumber * AngleNumber * OrinetationNumber * HeightNumber
         vrep.simxSetObjectPosition(clientID, SzenergyCar, -1, [MeasurementPoints(1, x) + SickPos(1) MeasurementPoints(2, x) + SickPos(2) MeasurementPoints(3, x) + SickPos(3)],vrep.simx_opmode_oneshot_wait);
         vrep.simxSetObjectOrientation(clientID, SzenergyCar, -1, [SzenergyOri(1) SzenergyOri(2) + MeasurementPoints(4, x) SzenergyOri(3)],vrep.simx_opmode_oneshot_wait);
@@ -112,14 +114,23 @@ if str == 'y'
 end
 
 %% Display
-
 if str == 'y'
-    fig1 = figure('Name', 'Laser scanner', 'units','normalized','position',[.1 .1 .4 .4], 'Color',[1 1 1], 'outerposition',[0 0 1 1]);
-    for x = 1:size(Db,2)
-        Color  = rand(1,3);
-        hold on
-        plot(Db(x).Meas(1,:), Db(x).Meas(2,:), '-o', 'Color', Color/4, 'MarkerFaceColor', Color, 'MarkerEdgeColor', Color, 'MarkerSize', 10, 'LineSmoothing','on')
-        plot(Db(x).RelPos.X , Db(x).RelPos.Y, 'o', 'MarkerFaceColor', Color, 'MarkerEdgeColor', Color, 'MarkerSize', 20, 'LineSmoothing','on');
-        pause(1);
+    if size(Db,2) > 500
+        disp('Very high number of measurement data, it is saved, but please display it manually');
+    else
+        fig1 = figure('Name', 'Laser scanner', 'units','normalized','position',[.1 .1 .4 .4], 'Color',[1 1 1], 'outerposition',[0 0 1 1]);
+        randomSize = uint16(size(Db, 2) / 10);
+        disp(strcat(num2str(randomSize), ' random measurement will be displayed'));
+        % Select random measurements according the generated vector
+        randomMeas = uint16((size(Db,2)-2).*rand(randomSize,1) + 1);
+        for x = 1:size(randomMeas, 1)
+            Color  = rand(1,3);
+            hold on
+            if ~isempty(Db(randomMeas(x)))
+                plot(Db(randomMeas(x)).Meas(1,:), Db(randomMeas(x)).Meas(2,:), '-o', 'Color', Color/4, 'MarkerFaceColor', Color, 'MarkerEdgeColor', Color, 'MarkerSize', 10, 'LineSmoothing','on')
+                plot(Db(randomMeas(x)).RelPos.X , Db(randomMeas(x)).RelPos.Y, 'o', 'MarkerFaceColor', Color, 'MarkerEdgeColor', Color, 'MarkerSize', 20, 'LineSmoothing','on');            
+                pause(1);
+            end
+        end
     end
 end
