@@ -35,3 +35,12 @@ The illustration of the scenario:
 
 *Description*: The aim of the project is to demonstrate the V-REP Remote API functions in C#.
 
+## 5. Coverage path planning algorithms on grid maps
+*Name*: `RobotGridCoveragePathPlanning`
+
+*Description*: Some grid map (occupancy grid) based coverage path planning algorithms implemented in MATLAB.
+
+### Demo images
+The illustration:
+![alt tag](http://www.sze.hu/~herno/robotics/CoveragePathPlan01.png)
+
