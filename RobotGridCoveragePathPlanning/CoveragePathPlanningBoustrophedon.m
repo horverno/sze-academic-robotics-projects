@@ -17,12 +17,13 @@ end
 %% Settings
 close all
 randCoverItemSize = 150;
-mapUnderTest = map;
+mapUnderTest = ~padarray(~map, [10 10]); % add border to the map
+debug = false;
 
 %% Display map
 fig1 = figure('Name', 'Map');
 figure(fig1);
-image(uint8(~mapUnderTest) ); % + uint8(bwmorph(~mapUnderTest,'skel',Inf))
+image(uint8(~mapUnderTest)); % + uint8(bwmorph(~mapUnderTest,'skel',Inf))
 h = zoom; % zoom by default
 set(h,'Motion','both','Enable','on'); % zoom by default
 colormap(myColorMap);
@@ -31,7 +32,7 @@ set(fig1,'Color',[1 1 1], 'units','pixels','outerposition',[0 0 800 800])
 movegui(fig1,'center')
 
 
-%% Create blobs
+%% Create blobs to find critical points
 [blobs, ~, blobNumber, adjacencyMat] = bwboundaries(~mapUnderTest);
 % Test: visulalize blobs
 hold on
@@ -43,12 +44,41 @@ if (nnz(adjacencyMat(:,1)) > 0)
     plot(boundary(:,2), boundary(:,1), 'y', 'LineWidth', 4);
     % Loop through the children of boundary k
     for i = find(adjacencyMat(:,1))'
-        boundary = blobs{i};
-        plot(boundary(:,2), boundary(:,1), 'w', 'LineWidth', 4);
+        if size(blobs{i},1) > 30
+            boundary = blobs{i};
+            if debug
+                plot(boundary(:,2), boundary(:,1), 'w', 'LineWidth', 4);
+                plot(min(boundary(:,2)), max(boundary(:,1)), '*', 'LineWidth', 10);
+                plot(min(boundary(:,2)), min(boundary(:,1)), '*', 'LineWidth', 10);
+            end
+            mapUnderTest(max(boundary(:,1)), :) = 1;
+            mapUnderTest(max(boundary(:,1)) - 1, :) = 1;            
+            mapUnderTest(min(boundary(:,1)), :) = 1;
+            mapUnderTest(min(boundary(:,1)) + 1, :) = 1;
+        end
+    end
+    if debug
+        waitfor(msgbox('critical displayed, next step: decomposing map into sub-poygons.'));
+    end
+end
+image(uint8(~mapUnderTest));
+
+%% Create cells to decompose the map into sub-poygons
+[cells, ~, blobNumber, adjacencyMat] = bwboundaries(mapUnderTest);
+% Test: visulalize blobs
+hold on
+if (nnz(adjacencyMat(:,1)) > 0)
+    boundary = cells{1};
+    % Loop through the children of boundary k
+    for i = find(adjacencyMat(:,1))'
+        if size(cells{i},1) > 30
+            boundary = cells{i};
+            fill(boundary(:,2), boundary(:,1), myColorMap(mod(i, size(myColorMap, 1)) + 1, :), 'FaceAlpha', 0.8, 'LineWidth', 0.01);
+        end
     end
 end
 
-% todo: after blob recognition find the critical points which decomposes the map into sub-poygons
+% todo: building the graph and the motion
 
 %%
 % measurements = regionprops(mapUnderTest, 'orientation');
