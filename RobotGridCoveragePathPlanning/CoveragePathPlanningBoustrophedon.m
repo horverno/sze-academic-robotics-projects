@@ -66,17 +66,36 @@ image(uint8(~mapUnderTest));
 %% Create cells to decompose the map into sub-poygons
 [cells, ~, blobNumber, adjacencyMat] = bwboundaries(mapUnderTest);
 % Test: visulalize blobs
-hold on
+%hold off
+%fig3 = figure;
+x = []; y = [];
 if (nnz(adjacencyMat(:,1)) > 0)
+    hold on
     boundary = cells{1};
     % Loop through the children of boundary k
     for i = find(adjacencyMat(:,1))'
         if size(cells{i},1) > 30
             boundary = cells{i};
             fill(boundary(:,2), boundary(:,1), myColorMap(mod(i, size(myColorMap, 1)) + 1, :), 'FaceAlpha', 0.8, 'LineWidth', 0.01);
+            x = [x, ((min(boundary(:,2)) + max(boundary(:,2))) / 2)]; 
+            y = [y, ((min(boundary(:,1)) + max(boundary(:,1))) / 2)];
         end
     end
 end
+
+figure(fig1);
+hold on
+
+
+% source: 1 2 3 4 5 target: 2 3 4 5 1
+cellGraph = graph((1:size(x,2)), (mod(1:size(x,2), size(x,2)) + 1));
+plot(cellGraph, 'XData', x, 'YData', y, 'MarkerSize', 12, 'LineWidth', 4)
+
+% axis square
+% s = regionprops(mapUnderTest, 'centroid');
+% centroids = cat(1, s.Centroid);
+
+
 
 % todo: building the graph and the motion
 
