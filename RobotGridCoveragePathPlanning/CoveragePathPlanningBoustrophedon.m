@@ -1,4 +1,10 @@
 %% Coverage path planning algorithm on grid map - Boustrophedon
+%
+% Requirements: - 2015b or newer MATLAB
+%               - Image processing toolbox
+% Copyright (c) Erno Horvath (www.sze.hu/~herno | https://www.linkedin.com/in/herno | github.com/horverno)
+%
+
 %% Maps loaded from file
 if(~exist('myColorMap','var'))
     load('Settings.mat');
@@ -57,8 +63,9 @@ if (nnz(adjacencyMat(:,1)) > 0)
             mapUnderTest(min(boundary(:,1)) + 1, :) = 1;
         end
     end
+    disp('Critical displayed, next step: decomposing map into sub-poygons.');
     if debug
-        waitfor(msgbox('critical displayed, next step: decomposing map into sub-poygons.'));
+        waitfor(msgbox('Critical displayed, next step: decomposing map into sub-poygons.'));
     end
 end
 image(uint8(~mapUnderTest));
@@ -66,9 +73,10 @@ image(uint8(~mapUnderTest));
 %% Create cells to decompose the map into sub-poygons
 [cells, ~, blobNumber, adjacencyMat] = bwboundaries(mapUnderTest);
 % Test: visulalize blobs
-%hold off
-%fig3 = figure;
-x = []; y = [];
+xCoordOfSubPolygons = []; 
+yCoordOfSubPolygons = [];
+subPolygons = [];
+j = 1;
 if (nnz(adjacencyMat(:,1)) > 0)
     hold on
     boundary = cells{1};
@@ -76,9 +84,13 @@ if (nnz(adjacencyMat(:,1)) > 0)
     for i = find(adjacencyMat(:,1))'
         if size(cells{i},1) > 30
             boundary = cells{i};
-            fill(boundary(:,2), boundary(:,1), myColorMap(mod(i, size(myColorMap, 1)) + 1, :), 'FaceAlpha', 0.8, 'LineWidth', 0.01);
-            x = [x, ((min(boundary(:,2)) + max(boundary(:,2))) / 2)]; 
-            y = [y, ((min(boundary(:,1)) + max(boundary(:,1))) / 2)];
+            subPolygons{j,1} = cells{i};
+            j = j + 1;
+            %if debug
+                fill(boundary(:,2), boundary(:,1), myColorMap(mod(j, size(myColorMap, 1)) + 1, :), 'FaceAlpha', 0.8, 'LineWidth', 0.01);
+            %end
+            xCoordOfSubPolygons = [xCoordOfSubPolygons, ((min(boundary(:,2)) + max(boundary(:,2))) / 2)]; 
+            yCoordOfSubPolygons = [yCoordOfSubPolygons, ((min(boundary(:,1)) + max(boundary(:,1))) / 2)];
         end
     end
 end
@@ -87,9 +99,53 @@ figure(fig1);
 hold on
 
 
-% source: 1 2 3 4 5 target: 2 3 4 5 1
-cellGraph = graph((1:size(x,2)), (mod(1:size(x,2), size(x,2)) + 1));
-plot(cellGraph, 'XData', x, 'YData', y, 'MarkerSize', 12, 'LineWidth', 4)
+
+ disp('Sub-poygon decomposed map displayed, next step display connectivity graph.');
+if debug
+    waitfor(msgbox('Sub-poygon decomposed map displayed, next step display connectivity graph.'));
+end
+
+%%
+tic
+cellGraphSource = [];
+cellGraphTarget = [];
+%hold on
+parfor i = 1:size(subPolygons,1) %paralell for loop
+    for j = i:size(subPolygons,1)
+        if i ~= j
+            tmpImage = logical(zeros((size(mapUnderTest))));
+            for k = 1:size(subPolygons{i}, 1)
+                tmpImage(subPolygons{i}(k,1), subPolygons{i}(k,2)) = true; 
+            end
+            for k = 1:size(subPolygons{j}, 1)
+                tmpImage(subPolygons{j}(k,1), subPolygons{j}(k,2)) = true; 
+            end
+            tmpImage = imfill(tmpImage,'holes');
+            se = strel('line',10,40);
+            tmpImage = imdilate(tmpImage, se);
+            [~,~,numOfBlobs,~] = bwboundaries(tmpImage);
+            if numOfBlobs == 1
+                isConnected = true;
+            elseif numOfBlobs == 2
+                isConnected = false;
+            else
+                isConnected = false;
+                waitfor(msgbox('Blob number is not 1 either 2! Unable to determine the connection between cells!'));
+            end
+            if isConnected
+                cellGraphSource = [cellGraphSource, i];
+                cellGraphTarget = [cellGraphTarget, j];
+            end   
+        end
+    end
+    disp(strcat('Number of iteration is:  ', num2str(i), '/', num2str(size(subPolygons,1)) ));
+ end
+toc
+
+%size(xCoordOfSubPolygons,2)
+% cellGraph from source and target
+cellGraph = graph(cellGraphSource, cellGraphTarget);
+plot(cellGraph, 'XData', xCoordOfSubPolygons, 'YData', yCoordOfSubPolygons, 'MarkerSize', 12, 'LineWidth', 4)
 
 % axis square
 % s = regionprops(mapUnderTest, 'centroid');
