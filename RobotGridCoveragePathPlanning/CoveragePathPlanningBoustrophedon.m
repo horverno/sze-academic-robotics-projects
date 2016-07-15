@@ -105,8 +105,7 @@ if debug
     waitfor(msgbox('Sub-poygon decomposed map displayed, next step display connectivity graph.'));
 end
 
-%%
-tic
+%% Determine connecttivity graph (cellGraph)
 cellGraphSource = [];
 cellGraphTarget = [];
 %hold on
@@ -140,20 +139,70 @@ parfor i = 1:size(subPolygons,1) %paralell for loop
     end
     disp(strcat('Number of iteration is:  ', num2str(i), '/', num2str(size(subPolygons,1)) ));
  end
-toc
 
-%size(xCoordOfSubPolygons,2)
 % cellGraph from source and target
 cellGraph = graph(cellGraphSource, cellGraphTarget);
-plot(cellGraph, 'XData', xCoordOfSubPolygons, 'YData', yCoordOfSubPolygons, 'MarkerSize', 12, 'LineWidth', 4)
-
-% axis square
-% s = regionprops(mapUnderTest, 'centroid');
-% centroids = cat(1, s.Centroid);
 
 
+% Order nodes according x 
+[yCoordOfSubPolygons, index] = sort(yCoordOfSubPolygons);
+xCoordOfSubPolygons = xCoordOfSubPolygons(index);
+cellGraph = reordernodes(cellGraph,index);
+p = plot(cellGraph, 'XData', xCoordOfSubPolygons, 'YData', yCoordOfSubPolygons, 'MarkerSize', 12, 'LineWidth', 4);
 
-% todo: building the graph and the motion
+% Build the node list
+nodeList = java.util.ArrayList;
+nodeList.clear();
+for i = 1:cellGraph.numnodes
+    nodeList.add(num2str(index(i)));
+end
+
+nextNode = 1;
+prevNode = 1;
+i = 0;
+nodeCount = 1;
+greedyOrder = [1];
+% Greedy algorithm
+% Loop until maximum 50 iteration or until the list is empty
+while ~nodeList.isEmpty && i < 200
+    if nodeList.contains(num2str(nextNode))
+        nodeList.remove(num2str(nextNode));
+        path = shortestpath(cellGraph, prevNode, nextNode);
+        for l = 1:size(path, 2)
+            if nodeList.contains(num2str(path(l)))
+                nodeList.remove(num2str(path(l)));
+            end
+        end
+        highlight(p, path,'NodeColor','r', 'EdgeColor','r')
+        greedyOrder = [greedyOrder path(2:end)];
+    else
+        disp('There is no such node.');
+    end
+    hold on
+    %highlight(p,nextNode,'NodeColor','r', 'EdgeColor','r')
+    prevNode = nextNode;
+    i = i + 1;
+    nodeNeighbor = [];
+    tmp = neighbors(cellGraph, nextNode);
+    for j = 1:size(tmp, 1)
+       if nodeList.contains(num2str(tmp(j)))
+           nodeNeighbor = [nodeNeighbor tmp(j)];
+       end
+    end
+    % If node has 1 neighbor than choose it
+    if size(nodeNeighbor) == 1
+        nextNode = nodeNeighbor;
+        disp('If node has 1 neighbor than choose it');
+    % Else choose another close node
+    else
+        while ~nodeList.contains(num2str(nodeCount)) && i < 200
+            nodeCount = nodeCount + 1;
+            i = i + 1;
+        end
+        nextNode = nodeCount;
+    end
+end
+disp(greedyOrder);
 
 %%
 % measurements = regionprops(mapUnderTest, 'orientation');
