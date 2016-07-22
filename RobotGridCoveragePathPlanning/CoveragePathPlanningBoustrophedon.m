@@ -1,11 +1,12 @@
 %% Coverage path planning algorithm on grid map - Boustrophedon
 %
 % Requirements: - 2015b or newer MATLAB
-%               - Image processing toolbox
+%               - Image Processing Toolbox
+%               - Parallel Computing Toolbox
 % Copyright (c) Erno Horvath (www.sze.hu/~herno | https://www.linkedin.com/in/herno | github.com/horverno)
 %
 
-%% Maps loaded from file
+%% load settings from file
 if(~exist('myColorMap','var'))
     load('Settings.mat');
 end
@@ -97,10 +98,7 @@ end
 
 figure(fig1);
 hold on
-
-
-
- disp('Sub-poygon decomposed map displayed, next step display connectivity graph.');
+disp('Sub-poygon decomposed map displayed, next step display connectivity graph.');
 if debug
     waitfor(msgbox('Sub-poygon decomposed map displayed, next step display connectivity graph.'));
 end
@@ -109,7 +107,7 @@ end
 cellGraphSource = [];
 cellGraphTarget = [];
 %hold on
-parfor i = 1:size(subPolygons,1) %paralell for loop
+parfor i = 1:size(subPolygons,1) % paralell for loop
     for j = i:size(subPolygons,1)
         if i ~= j
             tmpImage = logical(zeros((size(mapUnderTest))));
@@ -143,7 +141,7 @@ parfor i = 1:size(subPolygons,1) %paralell for loop
 % cellGraph from source and target
 cellGraph = graph(cellGraphSource, cellGraphTarget);
 
-
+%% Determining the motion according the connectivity graph (cellGraph)
 % Order nodes according x 
 [yCoordOfSubPolygons, index] = sort(yCoordOfSubPolygons);
 xCoordOfSubPolygons = xCoordOfSubPolygons(index);
@@ -162,7 +160,7 @@ prevNode = 1;
 i = 0;
 nodeCount = 1;
 greedyOrder = [1];
-% Greedy algorithm
+% Graph greedy algorithm - choose the obvious (if only 1 neghbour) or bottom-up
 % Loop until maximum 50 iteration or until the list is empty
 while ~nodeList.isEmpty && i < 200
     if nodeList.contains(num2str(nextNode))
@@ -192,7 +190,7 @@ while ~nodeList.isEmpty && i < 200
     % If node has 1 neighbor than choose it
     if size(nodeNeighbor) == 1
         nextNode = nodeNeighbor;
-        disp('If node has 1 neighbor than choose it');
+        %disp('If node has 1 neighbor than choose it');
     % Else choose another close node
     else
         while ~nodeList.contains(num2str(nodeCount)) && i < 200
@@ -204,21 +202,27 @@ while ~nodeList.isEmpty && i < 200
 end
 disp(greedyOrder);
 
-%%
-% measurements = regionprops(mapUnderTest, 'orientation');
-% angle = measurements(1).Orientation;
-% message = sprintf('The angle is %.3f degrees\n', angle);
-% uiwait(msgbox(message));
-% hold off
-% contour = bwtraceboundary(logical(mapUnderTest),[163 37],'W',8,Inf,'counterclockwise');
-% hold on;
-% plot(contour(:,2),contour(:,1),'g','LineWidth',2);
-% BW3 = bwmorph(~mapUnderTest,'skel',Inf);
-% figure
-% imshow(BW3)
+%% Generate the digraph object (directed graph) which is basically the boustrophedon path
+subXY = cell(size(subPolygons));
+for i = 1:size(subPolygons,1)
+    for j = min(subPolygons{i}(:,1)):max(subPolygons{i}(:,1))
+        if mod(j, 17) == 0 % the distances between horizontal lines
+            if mod(j, 2) == 0 % boustrophedon path
+                subXY{i} = [subXY{i}; j, (min(subPolygons{i}((find(subPolygons{i}(:,1) == j)), 2)) + 8)]; 
+                subXY{i} = [subXY{i}; j, (max(subPolygons{i}((find(subPolygons{i}(:,1) == j)), 2)) - 8)]; 
+            else
+                subXY{i} = [subXY{i}; j, (max(subPolygons{i}((find(subPolygons{i}(:,1) == j)), 2)) - 8)]; 
+                subXY{i} = [subXY{i}; j, (min(subPolygons{i}((find(subPolygons{i}(:,1) == j)), 2)) + 8)]; 
+            end               
+        end
+    end
+end
 
-%% Display debug info
-% fig2 = figure('Name', 'Covered area', 'Position',[20,500,450,285]);
-% set(0, 'currentfigure', fig2);
+hold on 
+for i = 1:size(subXY,1)
+    if ~isempty(subXY{i})
+        plot(subXY{i}(:,2), subXY{i}(:,1)); % plot the (not yet connected) boustrophedon path
+    end
+end
 
-%% Boustrophedon algorithm
+
