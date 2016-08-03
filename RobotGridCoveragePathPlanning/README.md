@@ -1,4 +1,4 @@
-# Coverage path planning algorithms on grid maps
+# Coverage path planning algorithms (CPP) on grid maps
 
 Some grid map (occupancy grid) based coverage path planning algorithms implemented in MATLAB.
 
@@ -12,3 +12,12 @@ Some grid map (occupancy grid) based coverage path planning algorithms implement
 This is just a demo image not how the algorithm works (right now at least).
 ![alt tag](http://www.sze.hu/~herno/robotics/CoveragePathPlan02Boustrophedon.png)
 
+
+
+## 2. Iterative structured orientation coverage (ISOC)
+*Name*: `CoveragePathPlanningIterativeStructuredOrientation.m`
+*Description*: Own developed algorithm.
+
+
+## Example
+Later.
