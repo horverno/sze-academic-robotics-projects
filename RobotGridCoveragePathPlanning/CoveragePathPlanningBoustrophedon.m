@@ -1,4 +1,4 @@
-%% Coverage path planning algorithm on grid map - Boustrophedon
+%% Coverage path planning (CPP) algorithm on grid map - Boustrophedon coverage
 %
 % Requirements: - 2015b or newer MATLAB
 %               - Image Processing Toolbox
@@ -26,6 +26,7 @@ close all
 randCoverItemSize = 150;
 mapUnderTest = ~padarray(~map, [10 10]); % add border to the map
 debug = false;
+resultPathSize = 0;
 
 %% Display map
 fig1 = figure('Name', 'Map');
@@ -102,8 +103,9 @@ disp('Sub-poygon decomposed map displayed, next step display connectivity graph.
 if debug
     waitfor(msgbox('Sub-poygon decomposed map displayed, next step display connectivity graph.'));
 end
+tic
 
-%% Determine connecttivity graph (cellGraph)
+%% Determine connectivity graph (cellGraph)
 cellGraphSource = [];
 cellGraphTarget = [];
 %hold on
@@ -200,6 +202,7 @@ while ~nodeList.isEmpty && i < 200
         nextNode = nodeCount;
     end
 end
+resultTime = toc;
 disp(greedyOrder);
 
 %% Generate the digraph object (directed graph) which is basically the boustrophedon path
@@ -218,11 +221,21 @@ for i = 1:size(subPolygons,1)
     end
 end
 
-hold on 
-for i = 1:size(subXY,1)
+
+
+figure
+subXyAll = [];
+for i = greedyOrder
     if ~isempty(subXY{i})
-        plot(subXY{i}(:,2), subXY{i}(:,1)); % plot the (not yet connected) boustrophedon path
+        subXyAll = [subXyAll; subXY{i}];        
     end
 end
+hold on
+plot(subXyAll(:,2), subXyAll(:,1), '*-', 'LineWidth', 4); % plot the connected boustrophedon path
 
-
+%% Write the results into file
+if ~isempty(chosenMap)
+    resultFile = fopen('Restult.txt', 'a+');
+    fprintf(resultFile, '%s;%s;%.2f;%.2f\r\n', 'Boustrophedon', lower(d(chosenMap).name), resultTime, resultPathSize);
+    fclose(resultFile);
+end
