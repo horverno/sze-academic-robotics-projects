@@ -33,7 +33,7 @@ lineDistance = 50; % the distance of the main lines from each other in pixels
 %% Display map
 fig1 = figure('Name', 'Map');
 figure(fig1);
-image(uint8(~mapUnderTest)); % + uint8(bwmorph(~mapUnderTest,'skel',Inf))
+image(uint8(~mapUnderTest)); % + uint8(bwmorph(~mapUnderTest,'skel',Inf)) (bwmorph(~mapUnderTest, 'skel', Inf))
 h = zoom; % zoom by default
 set(h, 'Motion', 'both', 'Enable', 'on'); % zoom by default
 colormap(myColorMap);
@@ -68,11 +68,19 @@ if debug
 end
 figure(fig1);
 hold on
-[isocMainLineCoordStart, isocMainLineCoordEnd] = IsocFindMainLines(mapUnderTest, 0.5, lineDistance);
+[isocMainLineCoordStart, isocMainLineCoordEnd] = IsocFindMainLines(mapUnderTest, bestLineAngle, lineDistance);
 for i = 1:size(isocMainLineCoordStart,1)
     plot([isocMainLineCoordStart(i,1), isocMainLineCoordEnd(i,1)], [isocMainLineCoordStart(i,2), isocMainLineCoordEnd(i,2)], '*-', 'LineWidth', 2);
+    text((isocMainLineCoordStart(i,1) + isocMainLineCoordEnd(i,1)) / 2, (isocMainLineCoordStart(i,2) + isocMainLineCoordEnd(i,2)) / 2, num2str(isocMainLineCoordStart(i,4)), 'Color', 'w', 'FontSize', 15);
 end
-
+lineGraphSource = isocMainLineCoordStart(:,4)';
+lineGraphTarget = ones(size(lineGraphSource)); % todo
+lineGraph = graph(lineGraphSource, lineGraphTarget);
+xCoordOfLines = ((isocMainLineCoordStart(:,1) + isocMainLineCoordEnd(:,1)) / 2)';
+yCoordOfLines = ((isocMainLineCoordStart(:,2) + isocMainLineCoordEnd(:,2)) / 2)';
+%fig3 = figure('Name', 'Graph');
+figure(fig1);
+plot(lineGraph, 'XData', xCoordOfLines, 'YData', yCoordOfLines, 'MarkerSize', 12, 'LineWidth', 4);
 
 resultTime = toc;
 
