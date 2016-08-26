@@ -9,9 +9,9 @@ This repository contains various projects developed in the Széchenyi István Un
 
 ### Demo images
 V-REP scene:
-![alt tag](http://www.sze.hu/~herno/robotics/vrep_matlab_01.png)
+![V-REP MATLAB](http://www.sze.hu/~herno/robotics/vrep_matlab_01.png)
 The same scene in MATLAB:
-![alt tag](http://www.sze.hu/~herno/robotics/vrep_matlab_02.png)
+![V-REP MATLAB](http://www.sze.hu/~herno/robotics/vrep_matlab_02.png)
 
 ## 2. Robot follows human project
 *Name*: `NeobotixRobotFollowsHuman`
@@ -21,9 +21,9 @@ The same scene in MATLAB:
 
 ### Demo images
 The scenario and the hardware components:
-![alt tag](http://www.sze.hu/~herno/robotics/KinectNeobotixScene1.png)
+![Kinect Neobotix](http://www.sze.hu/~herno/robotics/KinectNeobotixScene1.png)
 The illustration of the scenario:
-![alt tag](http://www.sze.hu/~herno/robotics/RobotFollowsHuman.png)
+![robot follows human](http://www.sze.hu/~herno/robotics/RobotFollowsHuman.png)
 
 ## 3. Robotic arm - Kinect project
 *Name*: `RoboticArmKinect`
@@ -42,5 +42,5 @@ The illustration of the scenario:
 
 ### Demo images
 The illustration:
-![alt tag](http://www.sze.hu/~herno/robotics/CoveragePathPlan01.png)
+![boustrophedon image](http://www.sze.hu/~herno/robotics/CoveragePathPlanBoustrophedon/BoustrophedonConnectivity.png)
 

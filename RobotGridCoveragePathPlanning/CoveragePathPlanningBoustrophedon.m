@@ -144,7 +144,7 @@ parfor i = 1:size(subPolygons,1) % paralell for loop
 cellGraph = graph(cellGraphSource, cellGraphTarget);
 
 %% Determining the motion according the connectivity graph (cellGraph)
-% Order nodes according x 
+% Order nodes according x coordinates
 [yCoordOfSubPolygons, index] = sort(yCoordOfSubPolygons);
 xCoordOfSubPolygons = xCoordOfSubPolygons(index);
 cellGraph = reordernodes(cellGraph,index);
@@ -163,7 +163,7 @@ i = 0;
 nodeCount = 1;
 greedyOrder = [1];
 % Graph greedy algorithm - choose the obvious (if only 1 neghbour) or bottom-up
-% Loop until maximum 50 iteration or until the list is empty
+% Loop until maximum 200 iteration or until the list is empty
 while ~nodeList.isEmpty && i < 200
     if nodeList.contains(num2str(nextNode))
         nodeList.remove(num2str(nextNode));
@@ -173,7 +173,7 @@ while ~nodeList.isEmpty && i < 200
                 nodeList.remove(num2str(path(l)));
             end
         end
-        highlight(p, path,'NodeColor','r', 'EdgeColor','r')
+        highlight(p, path,'NodeColor','y', 'EdgeColor','y')
         greedyOrder = [greedyOrder path(2:end)];
     else
         disp('There is no such node.');
@@ -222,17 +222,25 @@ for i = 1:size(subPolygons,1)
 end
 
 
-
-figure
+image(uint8(~mapUnderTest)); % + uint8(bwmorph(~mapUnderTest,'skel',Inf))
+%figure
 subXyAll = [];
-for i = greedyOrder
+for i = [1 2 3 4]
     if ~isempty(subXY{i})
-        subXyAll = [subXyAll; subXY{i}];        
+        subXyAll = [ subXyAll; subXY{i};];        
     end
+    %plot(subXY{i}(:,2), subXY{i}(:,1), '*-', 'LineWidth', 4); hold on
 end
 hold on
-plot(subXyAll(:,2), subXyAll(:,1), '*-', 'LineWidth', 4); % plot the connected boustrophedon path
+%figure
+plot(subXyAll(:,2), subXyAll(:,1), '*-', 'LineWidth', 2); % plot the connected boustrophedon path
 
+
+
+for i = 1:size(cellGraph.Nodes,1)
+    text(xCoordOfSubPolygons(i), yCoordOfSubPolygons(i), num2str(i), 'Color', 'w', 'FontSize', 20);
+end
+    
 %% Write the results into file
 if ~isempty(chosenMap)
     resultFile = fopen('Restult.txt', 'a+');
