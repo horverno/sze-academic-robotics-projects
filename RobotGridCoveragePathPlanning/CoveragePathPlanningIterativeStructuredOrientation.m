@@ -3,6 +3,7 @@
 % Requirements: - 2015b or newer MATLAB
 %               - Parallel Computing Toolbox
 %               - Image Processing Toolbox
+%               - Robotics System Toolbox
 % Copyright (c) Erno Horvath (www.sze.hu/~herno | https://www.linkedin.com/in/herno | github.com/horverno)
 %
 
@@ -25,7 +26,7 @@ end
 close all
 randCoverItemSize = 150;
 mapUnderTest = ~padarray(~map, [10 10]); % add border to the map
-debug = true;
+debug = false;
 resultPathSize = 0;
 debugMainLines = [];
 lineDistance = 50; % the distance of the main lines from each other in pixels
@@ -106,26 +107,55 @@ if max(conncomp(lineGraph)) ~= 1
     waitfor(msgbox('Error: the graph is not connected!'));
     return;
 end
-
-fig4 = figure('Name', 'Final result');
-figure(fig4)
-if size(monitorProperies, 1) == 2
-    set(fig4, 'Position',[2000 100 1000 900])
+if debug
+    fig4 = figure('Name', 'Line order result');
+    figure(fig4)
+    if size(monitorProperies, 1) == 2
+        set(fig4, 'Position',[2000 100 1000 900])
+    end
+    colormap(myColorMap);
 end
-colormap(myColorMap);
 isocPath = [];
 for i = 1:size(lineOrder, 2)
     if mod(i, 2) == 0
         isocPath = [isocMainLineCoordStart(lineOrder(i), 2), isocMainLineCoordStart(lineOrder(i), 1); isocPath];
         isocPath = [isocMainLineCoordEnd(lineOrder(i), 2), isocMainLineCoordEnd(lineOrder(i), 1); isocPath];
     else
-        isocPath = [isocMainLineCoordEnd(lineOrder(i), 2), isocMainLineCoordEnd(lineOrder(i), 1); isocPath];         
-        isocPath = [isocMainLineCoordStart(lineOrder(i), 2), isocMainLineCoordStart(lineOrder(i), 1); isocPath];      
+        isocPath = [isocMainLineCoordEnd(lineOrder(i), 2), isocMainLineCoordEnd(lineOrder(i), 1); isocPath];
+        isocPath = [isocMainLineCoordStart(lineOrder(i), 2), isocMainLineCoordStart(lineOrder(i), 1); isocPath];
     end
 end
-hold on
+if debug
+    hold on
+    image(uint8(mapUnderTest));
+    for i = 1:size(isocPath, 1) - 1
+        hold on
+        plot([isocPath(i, 2), isocPath(i+1, 2)], [isocPath(i, 1), isocPath(i + 1, 1)], '*-', 'LineWidth', 4)
+    end
+end
+
+%% improfile Pixel-value cross-sections along line segments
+fig5 = figure('Name', 'Final result');
+figure(fig5)
+if size(monitorProperies, 1) == 2
+    set(fig5, 'Position',[2000 100 1000 900])
+end
+colormap(myColorMap);
 image(uint8(mapUnderTest));
-plot(isocPath(:, 2), isocPath(:, 1), '*-', 'LineWidth', 4); % 
+for i = 1:size(isocPath, 1) - 1
+    hold on
+    if all(improfile(~mapUnderTest, [isocPath(i, 2), isocPath(i+1, 2)], [isocPath(i, 1), isocPath(i + 1, 1)]))
+        plot([isocPath(i, 2), isocPath(i+1, 2)], [isocPath(i, 1), isocPath(i + 1, 1)], '*-', 'LineWidth', 6)
+    else
+        plot([isocPath(i, 2), isocPath(i+1, 2)], [isocPath(i, 1), isocPath(i + 1, 1)], '--', 'LineWidth', 2)
+    end
+    
+end
+hold on
+
+%plot(isocPath(:, 2), isocPath(:, 1), '*-', 'LineWidth', 4); %
+
+
 
 %% Write the results into file
 % if ~isempty(chosenMap)
