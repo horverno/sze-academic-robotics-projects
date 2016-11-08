@@ -48,11 +48,15 @@ movegui(fig1,'center')
 tic
 
 %% Find the ISOC main lines
+disp('Erode the image with the structuring element, morphologically close image');
+% Erode the image with the structuring element, morphologically close image
+mapUnderTest2 = ~imerode(~mapUnderTest, strel('square', 20));
+
 % numberOfMainLines is the number of main lines, the smaller the better
-[isocMainLineCoordStart, isocMainLineCoordEnd, ~ ] = IsocFindMainLines(mapUnderTest, pi / 5, lineDistance);
+[isocMainLineCoordStart, isocMainLineCoordEnd, ~ ] = IsocFindMainLines(mapUnderTest2, pi / 5, lineDistance);
 numberOfMainLines = size(isocMainLineCoordStart, 1); % start value for numberOfMainLines
-for lineAngle = -pi/2:0.1:pi/2
-    [isocMainLineCoordStart, isocMainLineCoordEnd, ~ ] = IsocFindMainLines(mapUnderTest, lineAngle, lineDistance);
+for lineAngle = -pi/2:0.5:pi/2
+    [isocMainLineCoordStart, isocMainLineCoordEnd, ~ ] = IsocFindMainLines(mapUnderTest2, lineAngle, lineDistance);
     if debug
         debugMainLines = [debugMainLines; lineAngle, size(isocMainLineCoordStart, 1)];
     end
@@ -69,7 +73,7 @@ if debug
 end
 figure(fig1);
 hold on
-[isocMainLineCoordStart, isocMainLineCoordEnd, lineGraph ] = IsocFindMainLines(mapUnderTest, bestLineAngle, lineDistance);
+[isocMainLineCoordStart, isocMainLineCoordEnd, lineGraph ] = IsocFindMainLines(mapUnderTest2, bestLineAngle, lineDistance);
 for i = 1:size(isocMainLineCoordStart,1)
     % pause(0.5)
     plot([isocMainLineCoordStart(i,1), isocMainLineCoordEnd(i,1)], [isocMainLineCoordStart(i,2), isocMainLineCoordEnd(i,2)], '*-', 'LineWidth', 2);
@@ -91,6 +95,7 @@ resultTime = toc;
 
 
 %% Specifiy line visiting order (while visiting every line in the lineGraph)
+disp('Specifiy line visiting order (while visiting every line in the lineGraph)');
 [lineOrder] = IsocLineOrder(lineGraph, xCoordOfLines, yCoordOfLines);
 if debug
     fig3 = figure('Name', 'Graph');
@@ -145,11 +150,12 @@ image(uint8(mapUnderTest));
 for i = 1:size(isocPath, 1) - 1
     hold on
     if all(improfile(~mapUnderTest, [isocPath(i, 2), isocPath(i+1, 2)], [isocPath(i, 1), isocPath(i + 1, 1)]))
-        plot([isocPath(i, 2), isocPath(i+1, 2)], [isocPath(i, 1), isocPath(i + 1, 1)], '*-', 'LineWidth', 6)
+        plot([isocPath(i, 2), isocPath(i+1, 2)], [isocPath(i, 1), isocPath(i + 1, 1)], '-', 'LineWidth', 2)
     else
-        plot([isocPath(i, 2), isocPath(i+1, 2)], [isocPath(i, 1), isocPath(i + 1, 1)], '--', 'LineWidth', 2)
+        %plot([isocPath(i, 2), isocPath(i+1, 2)], [isocPath(i, 1), isocPath(i + 1, 1)], '*', 'LineWidth', 2)
+        probRoadmapPath = IsocProbRoadmap((flipud(mapUnderTest)),  fliplr(isocPath(i, :)), fliplr(isocPath(i + 1, :)));
+        plot(probRoadmapPath(:,1), probRoadmapPath(:,2),'-', 'LineWidth', 2);
     end
-    
 end
 hold on
 
