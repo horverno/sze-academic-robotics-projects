@@ -11,6 +11,11 @@ if(~exist('myColorMap','var'))
     load('Settings.mat');
 end
 
+%% Start parallel pool if not already started
+if isempty(gcp('nocreate')) % gcp - get current paralell pool
+    parpool;
+end
+
 %% Choose map
 d = dir('Map*.mat');
 [chosenMap,~] = listdlg('PromptString','Select a map:','SelectionMode','single', 'ListString',{d.name});
@@ -25,8 +30,9 @@ end
 close all
 randCoverItemSize = 150;
 mapUnderTest = ~padarray(~map, [10 10]); % add border to the map
-debug = false;
-resultPathSize = 0;
+mapOriginal = mapUnderTest;
+debug = 0;
+pathLength = 0;
 
 %% Display map
 fig1 = figure('Name', 'Map');
@@ -38,7 +44,7 @@ colormap(myColorMap);
 colorbar();
 set(fig1,'Color',[1 1 1], 'units','pixels','outerposition',[0 0 800 800])
 movegui(fig1,'center')
-
+tic
 
 %% Create blobs to find critical points
 [blobs, ~, blobNumber, adjacencyMat] = bwboundaries(~mapUnderTest);
@@ -71,6 +77,7 @@ if (nnz(adjacencyMat(:,1)) > 0)
     end
 end
 image(uint8(~mapUnderTest));
+
 
 %% Create cells to decompose the map into sub-poygons
 [cells, ~, blobNumber, adjacencyMat] = bwboundaries(mapUnderTest);
@@ -220,30 +227,46 @@ for i = 1:size(subPolygons,1)
         end
     end
 end
+resultTime = toc;
 
-
-image(uint8(~mapUnderTest)); % + uint8(bwmorph(~mapUnderTest,'skel',Inf))
+%%
+image(uint8(~mapOriginal)); % + uint8(bwmorph(~mapUnderTest,'skel',Inf))
 %figure
 subXyAll = [];
-for i = [1 2 3 4]
+for i = 1:size(subXY,1)
     if ~isempty(subXY{i})
-        subXyAll = [ subXyAll; subXY{i};];        
+        subXyAll = [ subXyAll; subXY{i}];
+        if i ~= size(subXY,1)
+            if ~all(improfile(~mapOriginal, subXY{i}(end,:), subXY{i+1}(end,:)))
+                probRoadmapPath = IsocProbRoadmap((flipud(mapOriginal)),  fliplr(subXY{i}(end,:)), fliplr(subXY{i+1}(end,:))); %flipud fliplr
+                plot(probRoadmapPath(:,1), probRoadmapPath(:,2),'-', 'LineWidth', 2); %plot the probabilistic roadmap between cells
+                subXyAll = [ subXyAll; fliplr(probRoadmapPath)];
+            end
+        end
     end
-    %plot(subXY{i}(:,2), subXY{i}(:,1), '*-', 'LineWidth', 4); hold on
+    %plot(subXY{i}(:,2), subXY{i}(:,1), '*-', 'LineWidth', 4); hold on %plot the not connected boustrophedon path (with different color)
 end
 hold on
 %figure
 plot(subXyAll(:,2), subXyAll(:,1), '*-', 'LineWidth', 2); % plot the connected boustrophedon path
 
-
-
 for i = 1:size(cellGraph.Nodes,1)
     text(xCoordOfSubPolygons(i), yCoordOfSubPolygons(i), num2str(i), 'Color', 'w', 'FontSize', 20);
 end
-    
+
+for i = 1:size(subXyAll,1) - 1
+    pathLength = pathLength + pdist([subXyAll(i, 1), subXyAll(i, 2); subXyAll(i + 1, 1), subXyAll(i + 1, 2)], 'euclidean');
+end
+pathLength = 0;
+for i = 1:size(subXyAll,1) - 1
+    pathLength = pathLength + pdist([subXyAll(i, 1), subXyAll(i, 2); subXyAll(i + 1, 1), subXyAll(i + 1, 2)], 'euclidean');
+end
+fprintf('The length of the path is %0.2f\nTime elapsed %0.2f s\n', pathLength, resultTime);
+
+
 %% Write the results into file
 if ~isempty(chosenMap)
     resultFile = fopen('Restult.txt', 'a+');
-    fprintf(resultFile, '%s;%s;%.2f;%.2f\r\n', 'Boustrophedon', lower(d(chosenMap).name), resultTime, resultPathSize);
+    fprintf(resultFile, '%s;%s;%.2f;%.2f\r\n', 'Boustrophedon', lower(d(chosenMap).name), resultTime, pathLength);
     fclose(resultFile);
 end

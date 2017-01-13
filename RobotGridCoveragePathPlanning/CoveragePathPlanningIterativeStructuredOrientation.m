@@ -12,11 +12,16 @@ if(~exist('myColorMap','var'))
     load('Settings.mat');
 end
 
+%% Start parallel pool if not already started
+if isempty(gcp('nocreate')) % gcp - get current paralell pool
+    parpool;
+end
+
 %% Choose map
-d = dir('Map*.mat');
-[chosenMap,~] = listdlg('PromptString','Select a map:','SelectionMode','single', 'ListString',{d.name});
+pathLength = dir('Map*.mat');
+[chosenMap,~] = listdlg('PromptString','Select a map:','SelectionMode','single', 'ListString',{pathLength.name});
 if ~isempty(chosenMap)
-    load(lower(d(chosenMap).name));
+    load(lower(pathLength(chosenMap).name));
 else
     disp('No map is chosen');
     return;
@@ -26,10 +31,10 @@ end
 close all
 randCoverItemSize = 150;
 mapUnderTest = ~padarray(~map, [10 10]); % add border to the map
-debug = false;
+debug = 0;
 resultPathSize = 0;
 debugMainLines = [];
-lineDistance = 50; % the distance of the main lines from each other in pixels
+lineDistance = 17; % the distance of the main lines from each other in pixels
 
 %% Display map
 fig1 = figure('Name', 'Map');
@@ -55,19 +60,20 @@ mapUnderTest2 = ~imerode(~mapUnderTest, strel('square', 20));
 % numberOfMainLines is the number of main lines, the smaller the better
 [isocMainLineCoordStart, isocMainLineCoordEnd, ~ ] = IsocFindMainLines(mapUnderTest2, pi / 5, lineDistance);
 numberOfMainLines = size(isocMainLineCoordStart, 1); % start value for numberOfMainLines
-for lineAngle = -pi/2:0.5:pi/2
-    [isocMainLineCoordStart, isocMainLineCoordEnd, ~ ] = IsocFindMainLines(mapUnderTest2, lineAngle, lineDistance);
-    if debug
-        debugMainLines = [debugMainLines; lineAngle, size(isocMainLineCoordStart, 1)];
-    end
-    if numberOfMainLines > size(isocMainLineCoordStart, 1)
-        numberOfMainLines = size(isocMainLineCoordStart, 1);
-        bestLineAngle = lineAngle;
-    end
-end
+% for lineAngle = -pi/2:0.1:pi/2 % angle resolution
+%     [isocMainLineCoordStart, isocMainLineCoordEnd, ~ ] = IsocFindMainLines(mapUnderTest2, lineAngle, lineDistance);
+%     if debug
+%         debugMainLines = [debugMainLines; lineAngle, size(isocMainLineCoordStart, 1)];
+%     end
+%     if numberOfMainLines > size(isocMainLineCoordStart, 1)
+%         numberOfMainLines = size(isocMainLineCoordStart, 1);
+%         bestLineAngle = lineAngle;
+%     end
+% end
+bestLineAngle = 0;
 if debug
     fig2 = figure('Name', 'Debug');
-    bar(debugMainLines(:,1), debugMainLines(:,2));
+    %bar(debugMainLines(:,1), debugMainLines(:,2));
     disp(strcat('Best main line angle is: ', num2str(bestLineAngle)));
     disp(strcat('Number of main lines: ', num2str(numberOfMainLines)));
 end
@@ -147,21 +153,38 @@ if size(monitorProperies, 1) == 2
 end
 colormap(myColorMap);
 image(uint8(mapUnderTest));
+finalPath = [ , ]; 
 for i = 1:size(isocPath, 1) - 1
     hold on
     if all(improfile(~mapUnderTest, [isocPath(i, 2), isocPath(i+1, 2)], [isocPath(i, 1), isocPath(i + 1, 1)]))
-        plot([isocPath(i, 2), isocPath(i+1, 2)], [isocPath(i, 1), isocPath(i + 1, 1)], '-', 'LineWidth', 2)
+        plot([isocPath(i, 2), isocPath(i + 1, 2)], [isocPath(i, 1), isocPath(i + 1, 1)], '-', 'LineWidth', 2)
+        finalPath = [finalPath; isocPath(i, 2), isocPath(i, 1)];
     else
         %plot([isocPath(i, 2), isocPath(i+1, 2)], [isocPath(i, 1), isocPath(i + 1, 1)], '*', 'LineWidth', 2)
         probRoadmapPath = IsocProbRoadmap((flipud(mapUnderTest)),  fliplr(isocPath(i, :)), fliplr(isocPath(i + 1, :)));
         plot(probRoadmapPath(:,1), probRoadmapPath(:,2),'-', 'LineWidth', 2);
+        finalPath = [finalPath; probRoadmapPath(:,1), probRoadmapPath(:,2)];
     end
 end
 hold on
 
 %plot(isocPath(:, 2), isocPath(:, 1), '*-', 'LineWidth', 4); %
 
-
+%% Display the final result
+fig6 = figure('Name', 'Final path');
+figure(fig6)
+if size(monitorProperies, 1) == 2
+    set(fig6, 'Position',[1950 100 1000 900])
+end
+colormap(myColorMap);
+hold on
+image(uint8(mapUnderTest));
+plot(finalPath(:,1), finalPath(:,2), 'o-w', 'LineWidth', 2);
+pathLength = 0;
+for i = 1:size(finalPath,1) - 1
+    pathLength = pathLength + pdist([finalPath(i, 1), finalPath(i, 2); finalPath(i + 1, 1), finalPath(i + 1, 2)], 'euclidean');
+end
+fprintf('The length of the path is %0.2f\nTime elapsed %0.2f s\n', pathLength, resultTime);
 
 %% Write the results into file
 % if ~isempty(chosenMap)
