@@ -34,14 +34,24 @@ else
 
 end
 
-%% Magnetometer - Honeywell MC5883L 
+%% IMU
 
 xMag = [], yMag = []; zMag = [];
 bearingMag = 0;
+
+writeRegister(gyroSensor, hex2dec('20') , hex2dec('0F'),'uint8')
+xGy = []; yGy = []; zGy = [];
+
+xA = []; yA = []; zA = [];
+
+if read(accelSensor, 1) == hex2dec('e5')
+    % Enable the accelerometer
+    writeRegister(accelSensor, hex2dec('2d'), hex2dec('08'), 'uint8');
+end
+figure
+subplot(2, 2, 1)
+
 for i = 1:100
-    % python: write_byte(0, 0b01110000) # Set to 8 samples @ 15Hz
-    % python: write_byte(1, 0b00100000) # 1.3 gain LSb / Gauss 1090 (default)
-    % python: write_byte(2, 0b00000000) # Continuous sampling
     writeRegister(magnetoSensor, hex2dec('0') , bi2de([0 1 1 1 0 0 0 0], 'left-msb'), 'uint8')
     writeRegister(magnetoSensor, hex2dec('1') , bi2de([0 0 1 0 0 0 0 0], 'left-msb'), 'uint8')
     writeRegister(magnetoSensor, hex2dec('2') , bi2de([0 0 0 0 0 0 0 0], 'left-msb'), 'uint8')
@@ -58,19 +68,15 @@ for i = 1:100
     xMag = [xMag; xM];
     yMag = [yMag; yM];
     zMag = [zMag; zM];
+    subplot(2, 2, 1)
     plot([xMag yMag zMag])
     legend('x mag', 'y mag', 'z mag')
-    pause(0.1)
-end
-
-
-%% Gyroscope - ST Microelectronics L3G4200D
-
-% python: i2c_bus.write_byte_data(i2c_address,0x20,0x0F)
-writeRegister(gyroSensor, hex2dec('20') , hex2dec('0F'),'uint8')
-xGy = []; yGy = []; zGy = [];
-% python: i2c_bus.write_byte(i2c_address,0x28)
-for i = 1:100
+    
+    h2 = subplot(2, 2, 2)
+    cla(h2)
+    compass(cos(bearingMag),sin(bearingMag))
+    
+    
     write(gyroSensor, hex2dec('28')) % python: i2c_bus.write_byte(i2c_address,0x28)
     xL = read(gyroSensor, 1);        % python: i2c_bus.read_byte(i2c_address)
     write(gyroSensor, hex2dec('29')) 
@@ -90,23 +96,11 @@ for i = 1:100
     zGy = [zGy; typecast(uint8([zL zR]), 'uint16')];
     
     % hold on
+    subplot(2, 2, 3)
     plot([xGy yGy zGy])
     legend('x gyro', 'y gyro', 'z gyro')
-    pause(0.1)
-end
-
-
-
-%% Accelerometer - Analog Devices ADXL345
-
-if read(accelSensor, 1) == hex2dec('e5')
-    % Enable the accelerometer
-    writeRegister(accelSensor, hex2dec('2d'), hex2dec('08'), 'uint8');
-end
-
-xA = []; yA = []; zA = [];
-for i = 1:100
-    rawAcc = readRegister(accelSensor, hex2dec('32'),'uint64'); % python: raw = self.accel.readList(self.ADXL345_REG_DATAX0, 6)
+    
+        rawAcc = readRegister(accelSensor, hex2dec('32'),'uint64'); % python: raw = self.accel.readList(self.ADXL345_REG_DATAX0, 6)
     resAcc = typecast(rawAcc, 'uint8');
     xAcc = resAcc(1);
     if typecast([resAcc(1) resAcc(2)], 'uint16') > 32767
@@ -121,8 +115,11 @@ for i = 1:100
     xA = [xA; xAcc];
     yA = [yA; yAcc];
     zA = [zA; zAcc];
-    
+    subplot(2, 2, 4)
     plot([xA yA zA])
     legend('x acc', 'y acc', 'z acc')
+    
     pause(0.1)
 end
+
+
