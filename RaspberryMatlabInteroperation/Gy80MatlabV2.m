@@ -81,26 +81,26 @@ for i = 1:100
     xL = read(gyroSensor, 1);        % python: i2c_bus.read_byte(i2c_address)
     write(gyroSensor, hex2dec('29')) 
     xR = read(gyroSensor, 1);
-    xGy = [xGy; typecast(uint8([xL xR]), 'uint16')];
+    xGy = [xGy; typecast(uint8([xL xR]), 'int16')];
     
     write(gyroSensor, hex2dec('2A')) 
     yL = read(gyroSensor, 1); 
     write(gyroSensor, hex2dec('2B')) 
     yR = read(gyroSensor, 1);
-    yGy = [yGy; typecast(uint8([yL yR]), 'uint16')];
+    yGy = [yGy; typecast(uint8([yL yR]), 'int16')];
     
     write(gyroSensor, hex2dec('2C')) 
     zL = read(gyroSensor, 1); 
     write(gyroSensor, hex2dec('2D')) 
     zR = read(gyroSensor, 1);
-    zGy = [zGy; typecast(uint8([zL zR]), 'uint16')];
+    zGy = [zGy; typecast(uint8([zL zR]), 'int16')];
     
     % hold on
     subplot(2, 2, 3)
     plot([xGy yGy zGy])
     legend('x gyro', 'y gyro', 'z gyro')
     
-        rawAcc = readRegister(accelSensor, hex2dec('32'),'uint64'); % python: raw = self.accel.readList(self.ADXL345_REG_DATAX0, 6)
+    rawAcc = readRegister(accelSensor, hex2dec('32'),'uint64'); % python: raw = self.accel.readList(self.ADXL345_REG_DATAX0, 6)
     resAcc = typecast(rawAcc, 'uint8');
     xAcc = resAcc(1);
     if typecast([resAcc(1) resAcc(2)], 'uint16') > 32767

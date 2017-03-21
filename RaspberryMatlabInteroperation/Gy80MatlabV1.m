@@ -75,19 +75,19 @@ for i = 1:100
     xL = read(gyroSensor, 1);        % python: i2c_bus.read_byte(i2c_address)
     write(gyroSensor, hex2dec('29')) 
     xR = read(gyroSensor, 1);
-    xGy = [xGy; typecast(uint8([xL xR]), 'uint16')];
+    xGy = [xGy; typecast(uint8([xL xR]), 'int16')];
     
     write(gyroSensor, hex2dec('2A')) 
     yL = read(gyroSensor, 1); 
     write(gyroSensor, hex2dec('2B')) 
     yR = read(gyroSensor, 1);
-    yGy = [yGy; typecast(uint8([yL yR]), 'uint16')];
+    yGy = [yGy; typecast(uint8([yL yR]), 'int16')];
     
     write(gyroSensor, hex2dec('2C')) 
     zL = read(gyroSensor, 1); 
     write(gyroSensor, hex2dec('2D')) 
     zR = read(gyroSensor, 1);
-    zGy = [zGy; typecast(uint8([zL zR]), 'uint16')];
+    zGy = [zGy; typecast(uint8([zL zR]), 'int16')];
     
     % hold on
     plot([xGy yGy zGy])
