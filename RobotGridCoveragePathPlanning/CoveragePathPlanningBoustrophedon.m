@@ -17,10 +17,10 @@ if isempty(gcp('nocreate')) % gcp - get current paralell pool
 end
 
 %% Choose map
-d = dir('Map*.mat');
-[chosenMap,~] = listdlg('PromptString','Select a map:','SelectionMode','single', 'ListString',{d.name});
+mapDBase = dir('Maps\*.mat');
+[chosenMap,~] = listdlg('PromptString','Select a map:','SelectionMode','single', 'ListString', {mapDBase.name}, 'ListSize', [500 200]);
 if ~isempty(chosenMap)
-    load(lower(d(chosenMap).name));
+    load(['Maps\', lower(mapDBase(chosenMap).name)]);
 else
     disp('No map is chosen');
     return;
@@ -31,7 +31,7 @@ close all
 randCoverItemSize = 150;
 mapUnderTest = ~padarray(~map, [10 10]); % add border to the map
 mapOriginal = mapUnderTest;
-debug = 0;
+debug = 1;
 pathLength = 0;
 
 %% Display map
@@ -110,7 +110,7 @@ disp('Sub-poygon decomposed map displayed, next step display connectivity graph.
 if debug
     waitfor(msgbox('Sub-poygon decomposed map displayed, next step display connectivity graph.'));
 end
-tic
+
 
 %% Determine connectivity graph (cellGraph)
 cellGraphSource = [];
@@ -209,7 +209,6 @@ while ~nodeList.isEmpty && i < 200
         nextNode = nodeCount;
     end
 end
-resultTime = toc;
 disp(greedyOrder);
 
 %% Generate the digraph object (directed graph) which is basically the boustrophedon path
@@ -244,7 +243,7 @@ for i = 1:size(subXY,1)
             end
         end
     end
-    %plot(subXY{i}(:,2), subXY{i}(:,1), '*-', 'LineWidth', 4); hold on %plot the not connected boustrophedon path (with different color)
+    plot(subXY{i}(:,2), subXY{i}(:,1), '*-', 'LineWidth', 4); hold on %plot the not connected boustrophedon path (with different color)
 end
 hold on
 %figure
@@ -267,6 +266,6 @@ fprintf('The length of the path is %0.2f\nTime elapsed %0.2f s\n', pathLength, r
 %% Write the results into file
 if ~isempty(chosenMap)
     resultFile = fopen('Restult.txt', 'a+');
-    fprintf(resultFile, '%s;%s;%.2f;%.2f\r\n', 'Boustrophedon', lower(d(chosenMap).name), resultTime, pathLength);
+    fprintf(resultFile, '%s;%s;%.2f;%.2f\r\n', 'Boustrophedon', lower(mapDBase(chosenMap).name), resultTime, pathLength);
     fclose(resultFile);
 end

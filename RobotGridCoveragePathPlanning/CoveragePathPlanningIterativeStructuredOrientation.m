@@ -18,10 +18,10 @@ if isempty(gcp('nocreate')) % gcp - get current paralell pool
 end
 
 %% Choose map
-pathLength = dir('Map*.mat');
-[chosenMap,~] = listdlg('PromptString','Select a map:','SelectionMode','single', 'ListString',{pathLength.name});
+mapDBase = dir('Maps\*.mat');
+[chosenMap,~] = listdlg('PromptString','Select a map:','SelectionMode','single', 'ListString', {mapDBase.name}, 'ListSize', [500 200]);
 if ~isempty(chosenMap)
-    load(lower(pathLength(chosenMap).name));
+    load(['Maps\', lower(mapDBase(chosenMap).name)]);
 else
     disp('No map is chosen');
     return;
@@ -35,6 +35,7 @@ debug = 0;
 resultPathSize = 0;
 debugMainLines = [];
 lineDistance = 17; % the distance of the main lines from each other in pixels
+bestLineAngle = rad2deg(45.00+90);
 
 %% Display map
 fig1 = figure('Name', 'Map');
@@ -58,19 +59,18 @@ disp('Erode the image with the structuring element, morphologically close image'
 mapUnderTest2 = ~imerode(~mapUnderTest, strel('square', 20));
 
 % numberOfMainLines is the number of main lines, the smaller the better
-[isocMainLineCoordStart, isocMainLineCoordEnd, ~ ] = IsocFindMainLines(mapUnderTest2, pi / 5, lineDistance);
+[isocMainLineCoordStart, isocMainLineCoordEnd, ~ ] = IsocFindMainLines(mapUnderTest2, bestLineAngle, lineDistance);
 numberOfMainLines = size(isocMainLineCoordStart, 1); % start value for numberOfMainLines
-% for lineAngle = -pi/2:0.1:pi/2 % angle resolution
-%     [isocMainLineCoordStart, isocMainLineCoordEnd, ~ ] = IsocFindMainLines(mapUnderTest2, lineAngle, lineDistance);
-%     if debug
-%         debugMainLines = [debugMainLines; lineAngle, size(isocMainLineCoordStart, 1)];
-%     end
-%     if numberOfMainLines > size(isocMainLineCoordStart, 1)
-%         numberOfMainLines = size(isocMainLineCoordStart, 1);
-%         bestLineAngle = lineAngle;
-%     end
-% end
-bestLineAngle = 0;
+for lineAngle = -pi/2:0.4:pi/2 % angle resolution
+    [isocMainLineCoordStart, isocMainLineCoordEnd, ~ ] = IsocFindMainLines(mapUnderTest2, lineAngle, lineDistance);
+    if debug
+        debugMainLines = [debugMainLines; lineAngle, size(isocMainLineCoordStart, 1)];
+    end
+    if numberOfMainLines > size(isocMainLineCoordStart, 1)
+        numberOfMainLines = size(isocMainLineCoordStart, 1);
+        bestLineAngle = lineAngle;
+    end
+end
 if debug
     fig2 = figure('Name', 'Debug');
     %bar(debugMainLines(:,1), debugMainLines(:,2));
@@ -166,6 +166,7 @@ for i = 1:size(isocPath, 1) - 1
         finalPath = [finalPath; probRoadmapPath(:,1), probRoadmapPath(:,2)];
     end
 end
+finalPath = [finalPath; isocPath(end, 2), isocPath(end, 1)];
 hold on
 
 %plot(isocPath(:, 2), isocPath(:, 1), '*-', 'LineWidth', 4); %
@@ -184,11 +185,11 @@ pathLength = 0;
 for i = 1:size(finalPath,1) - 1
     pathLength = pathLength + pdist([finalPath(i, 1), finalPath(i, 2); finalPath(i + 1, 1), finalPath(i + 1, 2)], 'euclidean');
 end
-fprintf('The length of the path is %0.2f\nTime elapsed %0.2f s\n', pathLength, resultTime);
+fprintf('The length of the path is %0.2f\nTime elapsed %0.2f s\n Best line angle: %.2f° %.4frad ', pathLength, resultTime, rad2deg(bestLineAngle), bestLineAngle);
 
 %% Write the results into file
-% if ~isempty(chosenMap)
-%    resultFile = fopen('Restult.txt', 'a+');
-%    fprintf(resultFile, '%s;%s;%.2f;%.2f\r\n', 'ISOC', lower(d(chosenMap).name), resultTime, resultPathSize);
-%    fclose(resultFile);
-% end
+if ~isempty(chosenMap)
+    resultFile = fopen('Restult.txt', 'a+');
+    fprintf(resultFile, '%s;%s;%.2f;%.2f\r\n', 'Isoc', lower(mapDBase(chosenMap).name), resultTime, pathLength);
+    fclose(resultFile);
+end
